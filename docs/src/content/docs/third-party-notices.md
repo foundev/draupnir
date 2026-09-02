@@ -7,11 +7,11 @@ Draupnir is `LGPL-3.0-only` and depends on components under additional open-sour
 
 ## Shipped Material
 
-- [`LICENSE`](https://github.com/BrokkAi/draupnir/blob/master/LICENSE): GNU LGPL version 3 text.
-- [`licenses/GPL-3.0.md`](https://github.com/BrokkAi/draupnir/blob/master/licenses/GPL-3.0.md): incorporated GNU GPL version 3 text.
-- [`licenses/SOURCE.md`](https://github.com/BrokkAi/draupnir/blob/master/licenses/SOURCE.md): source and corresponding-source orientation.
-- [`licenses/THIRD_PARTY_LICENSES.html`](https://github.com/BrokkAi/draupnir/blob/master/licenses/THIRD_PARTY_LICENSES.html): generated Rust dependency report.
-- [`licenses/SUPPLEMENTAL_THIRD_PARTY_NOTICES.txt`](https://github.com/BrokkAi/draupnir/blob/master/licenses/SUPPLEMENTAL_THIRD_PARTY_NOTICES.txt): standalone attributions and vendored native-code notices.
+- [`LICENSE`](https://github.com/foundev/draupnir/blob/master/LICENSE): GNU LGPL version 3 text.
+- [`licenses/GPL-3.0.md`](https://github.com/foundev/draupnir/blob/master/licenses/GPL-3.0.md): incorporated GNU GPL version 3 text.
+- [`licenses/SOURCE.md`](https://github.com/foundev/draupnir/blob/master/licenses/SOURCE.md): source and corresponding-source orientation.
+- [`licenses/THIRD_PARTY_LICENSES.html`](https://github.com/foundev/draupnir/blob/master/licenses/THIRD_PARTY_LICENSES.html): generated Rust dependency report.
+- [`licenses/SUPPLEMENTAL_THIRD_PARTY_NOTICES.txt`](https://github.com/foundev/draupnir/blob/master/licenses/SUPPLEMENTAL_THIRD_PARTY_NOTICES.txt): standalone attributions and vendored native-code notices.
 
 The generated report covers the locked native release targets and the `wasm32-wasip2` parser guest embedded by the default feature set. Release archives carry these files next to the executable.
 
@@ -19,4 +19,4 @@ The generated report covers the locked native release targets and the `wasm32-wa
 
 Do not substitute a notice report from another version. Preserve the files shipped with the exact archive you redistribute and make the corresponding source for that version available as required.
 
-Dependency-policy decisions, regeneration commands, and reviewed exceptions belong to the maintainer workflow in [`CONTRIBUTING.md`](https://github.com/BrokkAi/draupnir/blob/master/CONTRIBUTING.md#dependency-and-license-changes). The practical boundary between invoking, bundling, and linking Draupnir is covered in [License and Use Cases](/license-use-cases/).
+Dependency-policy decisions, regeneration commands, and reviewed exceptions belong to the maintainer workflow in [`CONTRIBUTING.md`](https://github.com/foundev/draupnir/blob/master/CONTRIBUTING.md#dependency-and-license-changes). The practical boundary between invoking, bundling, and linking Draupnir is covered in [License and Use Cases](/license-use-cases/).

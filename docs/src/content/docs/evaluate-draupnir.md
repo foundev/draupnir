@@ -20,7 +20,7 @@ Follow [Install Draupnir](/install/) and confirm:
 Clone the repository and open the fixture:
 
 ```bash
-git clone https://github.com/BrokkAi/draupnir.git
+git clone https://github.com/foundev/draupnir.git
 cd draupnir/docs/fixtures/ten-minute-evaluation
 zed . # if the Zed CLI is installed
 ```

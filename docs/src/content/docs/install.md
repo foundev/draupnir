@@ -26,7 +26,7 @@ For Windows, musl-based Linux, or Android, use the methods below.
 Install the released binary with the install script:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BrokkAi/draupnir/refs/heads/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/foundev/draupnir/refs/heads/master/install.sh | bash
 ```
 
 The script detects your platform, downloads the matching release archive from
@@ -60,16 +60,17 @@ WSL needs to launch Draupnir.
 
 The install script does not cover Windows. Download the `.zip` archive and
 matching `.sha256` sidecar from the
-[release page](https://github.com/BrokkAi/draupnir/releases) and place `draupnir.exe`
-on your `PATH`. Running the script from Git Bash, MSYS2, or Cygwin does not
-install the Windows binary; use WSL only when you specifically want Draupnir to
-run inside WSL.
+[release page](https://github.com/foundev/draupnir/releases) and place `draupnir.exe`
+on your `PATH`. Alternatively, from a source checkout, install with
+`cargo install --path . --locked` after adding the `wasm32-wasip2` target.
+Running the script from Git Bash, MSYS2, or Cygwin does not install the Windows
+binary; use WSL only when you specifically want Draupnir to run inside WSL.
 
 Pipe-to-shell installs run remote code. To read the script before running it,
 download it first:
 
 ```bash
-curl -fsSL -O https://raw.githubusercontent.com/BrokkAi/draupnir/refs/heads/master/install.sh
+curl -fsSL -O https://raw.githubusercontent.com/foundev/draupnir/refs/heads/master/install.sh
 less install.sh
 bash install.sh
 ```
@@ -80,16 +81,16 @@ The script accepts these environment variables:
 | --- | --- |
 | `INSTALL_DIR` | Install directory. Defaults to `~/.local/bin`. |
 | `DRAUPNIR_INSTALL_DIR` | Same as `INSTALL_DIR`, with higher precedence. |
-| `DRAUPNIR_VERSION` | Release tag to install, for example `v0.24.3`. Defaults to the latest release. |
-| `DRAUPNIR_GITHUB_OWNER` | GitHub owner to download from. Defaults to `BrokkAi`. |
+| `DRAUPNIR_VERSION` | Release tag to install, for example `v0.28.0`. Defaults to the latest release. |
+| `DRAUPNIR_GITHUB_OWNER` | GitHub owner to download from. Defaults to `foundev`. |
 | `GITHUB_TOKEN` | Token used for GitHub API rate limits. |
 | `PROFILE` | Shell profile to update when the install directory is not on `PATH`. |
 
 Pin a version and choose the directory like this:
 
 ```bash
-DRAUPNIR_VERSION=v0.24.3 INSTALL_DIR=/usr/local/bin \
-  bash -c "$(curl -fsSL https://raw.githubusercontent.com/BrokkAi/draupnir/refs/heads/master/install.sh)"
+DRAUPNIR_VERSION=v0.28.0 INSTALL_DIR=/usr/local/bin \
+  bash -c "$(curl -fsSL https://raw.githubusercontent.com/foundev/draupnir/refs/heads/master/install.sh)"
 ```
 
 Re-running the script installs over the existing binary, so it also serves as
@@ -103,7 +104,7 @@ draupnir --version
 
 ## Manual Prebuilt Release
 
-Download the archive and matching `.sha256` sidecar from the [latest GitHub release](https://github.com/BrokkAi/draupnir/releases/latest).
+Download the archive and matching `.sha256` sidecar from the [latest GitHub release](https://github.com/foundev/draupnir/releases/latest).
 
 | Platform | Release asset suffix |
 | --- | --- |

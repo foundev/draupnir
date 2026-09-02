@@ -43,7 +43,7 @@ const { actions = [] } = data.hero || {};
         <button id="install-tab-curl" type="button" role="tab" aria-selected="true" aria-controls="install-panel-curl">Curl</button>
       </div>
       <div id="install-panel-curl" class="install-panel__command" role="tabpanel" aria-labelledby="install-tab-curl">
-        <code>curl -fsSL https://raw.githubusercontent.com/BrokkAi/draupnir/refs/heads/master/install.sh | bash</code>
+        <code>curl -fsSL https://raw.githubusercontent.com/foundev/draupnir/refs/heads/master/install.sh | bash</code>
         <button class="install-panel__copy" type="button" data-copy-install aria-label="Copy curl install command">
           <span data-copy-label>Copy</span>
         </button>
@@ -62,7 +62,7 @@ const { actions = [] } = data.hero || {};
 </section>
 
 <script>
-  const command = 'curl -fsSL https://raw.githubusercontent.com/BrokkAi/draupnir/refs/heads/master/install.sh | bash';
+  const command = 'curl -fsSL https://raw.githubusercontent.com/foundev/draupnir/refs/heads/master/install.sh | bash';
   const copyButton = document.querySelector<HTMLButtonElement>('[data-copy-install]');
   const copyLabel = copyButton?.querySelector<HTMLElement>('[data-copy-label]');
 

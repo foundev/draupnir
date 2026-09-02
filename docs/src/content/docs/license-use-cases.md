@@ -3,7 +3,7 @@ title: License and Use Cases
 description: Practical orientation for using and distributing Draupnir under LGPL-3.0-only.
 ---
 
-Draupnir is available under the [GNU Lesser General Public License version 3](https://github.com/BrokkAi/draupnir/blob/master/LICENSE) (`LGPL-3.0-only`). You may use it for research, internal work, and commercial products. Obligations depend mainly on whether you run it separately, link it into another program, modify it, or distribute a copy.
+Draupnir is available under the [GNU Lesser General Public License version 3](https://github.com/foundev/draupnir/blob/master/LICENSE) (`LGPL-3.0-only`). You may use it for research, internal work, and commercial products. Obligations depend mainly on whether you run it separately, link it into another program, modify it, or distribute a copy.
 
 This page is practical orientation, not legal advice. The license text controls. It covers Draupnir, not the separate Brokk product, trademarks, user data, model-provider terms, or third-party components under their own licenses.
 

@@ -11,8 +11,8 @@ version = "0.28.0"
 edition = "2024"
 description = "Draupnir: Rust ACP server with first-run setup for Codex, Ollama, and OpenRouter"
 license = "LGPL-3.0-only"
-repository = "https://github.com/BrokkAi/draupnir"
-homepage = "https://github.com/BrokkAi/draupnir"
+repository = "https://github.com/foundev/draupnir"
+homepage = "https://github.com/foundev/draupnir"
 readme = "README.md"
 
 [features]

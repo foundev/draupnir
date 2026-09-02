@@ -77,13 +77,13 @@ Build the debug agent once, then run the examples with literal input so the firs
 ```bash
 cargo build --bin draupnir
 
-cargo run --example issue_bot -- --repo BrokkAi/draupnir \
+cargo run --example issue_bot -- --repo foundev/draupnir \
   --issue-text "Users report that /setup timeout rejects 300 seconds."
 
-cargo run --example review_bot -- --repo BrokkAi/draupnir \
+cargo run --example review_bot -- --repo foundev/draupnir \
   --diff-text "diff --git a/README.md b/README.md"
 
-cargo run --example issue_writer_tui -- --repo BrokkAi/draupnir --dry-run \
+cargo run --example issue_writer_tui -- --repo foundev/draupnir --dry-run \
   --prompt "The docs should explain ACP client examples."
 ```
 

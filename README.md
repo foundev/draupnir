@@ -7,9 +7,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/BrokkAi/draupnir/actions/workflows/ci.yml"><img src="https://github.com/BrokkAi/draupnir/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/BrokkAi/draupnir/releases/latest"><img src="https://img.shields.io/github/v/release/BrokkAi/draupnir" alt="Latest release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/BrokkAi/draupnir" alt="LGPL-3.0-only"></a>
+  <a href="https://github.com/foundev/draupnir/actions/workflows/ci.yml"><img src="https://github.com/foundev/draupnir/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/foundev/draupnir/releases/latest"><img src="https://img.shields.io/github/v/release/foundev/draupnir" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/foundev/draupnir" alt="LGPL-3.0-only"></a>
 </p>
 
 <p align="center">
@@ -53,11 +53,11 @@ draupnir --version
 Or install the latest checksum-verified release on macOS, Linux, WSL, or Android/Termux:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BrokkAi/draupnir/refs/heads/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/foundev/draupnir/refs/heads/master/install.sh | bash
 draupnir --version
 ```
 
-To review the installer before running it, download `install.sh`, inspect it, then run it with `bash`. You can also download an archive from [GitHub Releases](https://github.com/BrokkAi/draupnir/releases/latest).
+To review the installer before running it, download `install.sh`, inspect it, then run it with `bash`. You can also download an archive from [GitHub Releases](https://github.com/foundev/draupnir/releases/latest).
 
 Running `draupnir` directly starts a stdio JSON-RPC server; use it through an ACP client. Continue with the [installation guide](https://draupnir.brokk.ai/install/) or the reproducible [ten-minute evaluation](https://draupnir.brokk.ai/evaluate-draupnir/).
 
@@ -73,7 +73,7 @@ draupnir -p "…" --cwd /path/to/repo --model "codex::gpt-5-codex+high"
 draupnir -p "…" --resume SESSION_ID            # continue an existing session
 ```
 
-Headless runs never block on a human: `manual` rejects every permission request but still honors agent-side approvals that never reach the client (`read`, `search`, and `fetch`; sandboxed shell commands on the conservative read-only safelist; and remembered repo-scoped **Always allow** grants); `auto` accepts edit/delete/move but rejects shell execution; and `yolo` accepts everything. The final assistant message goes to stdout (`text`), or a machine-readable payload with `session_id`, `resumed`, `result`, `stop_reason`, `usage`, and `error` (`json` / `stream-json`); progress and diagnostics stay on stderr, and the exit code is non-zero on agent or transport failure ([#356](https://github.com/BrokkAi/draupnir/issues/356)).
+Headless runs never block on a human: `manual` rejects every permission request but still honors agent-side approvals that never reach the client (`read`, `search`, and `fetch`; sandboxed shell commands on the conservative read-only safelist; and remembered repo-scoped **Always allow** grants); `auto` accepts edit/delete/move but rejects shell execution; and `yolo` accepts everything. The final assistant message goes to stdout (`text`), or a machine-readable payload with `session_id`, `resumed`, `result`, `stop_reason`, `usage`, and `error` (`json` / `stream-json`); progress and diagnostics stay on stderr, and the exit code is non-zero on agent or transport failure ([#356](https://github.com/foundev/draupnir/issues/356)).
 
 `draupnir serve` (included in all official binaries; source builds can opt out with `cargo build --no-default-features --features wasm-sandbox`) starts the same runtime as an HTTP daemon on a loopback listener (default `127.0.0.1:26845`), exposing versioned REST endpoints for session lifecycle, model discovery, the tool catalog, and asynchronous prompt runs with Server-Sent-Event streaming and cancellation (`/health`, `/v1/models`, `/v1/tools`, `/v1/sessions`, `/v1/runs`). The daemon supports bearer-token authentication (required for non-loopback binding), server-enforced workspace roots, and interactive permission approval endpoints. The wire contract is versioned and checked in under [`openapi/`](openapi/) (OpenAPI document, SSE event schema, and compatibility policy), with a black-box conformance suite holding the implementation to it. Generate a client in your preferred language from those contract files.
 

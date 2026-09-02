@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.1.0"
 
-OWNER="${DRAUPNIR_GITHUB_OWNER:-BrokkAi}"
+OWNER="${DRAUPNIR_GITHUB_OWNER:-foundev}"
 REPO="draupnir"
 BIN_NAME="draupnir"
 INSTALL_DIR="${DRAUPNIR_INSTALL_DIR:-${INSTALL_DIR:-$HOME/.local/bin}}"
@@ -31,7 +31,7 @@ usage() {
 Install the released Draupnir binary.
 
 Usage:
-  curl -fsSL https://raw.githubusercontent.com/BrokkAi/draupnir/refs/heads/master/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/${OWNER}/${REPO}/refs/heads/master/install.sh | bash
 
 Platforms:
   macOS            Apple Silicon and Intel, via the universal binary.
@@ -40,13 +40,13 @@ Platforms:
                    inside WSL and is not callable from Windows-native tools.
   Android          ARM64 under Termux.
   Windows          Not installed by this script. Download the release archive
-                   or install from source with Cargo.
+                   or run 'cargo install --path . --locked' from a source checkout.
 
 Environment:
-  INSTALL_DIR              Install directory. Defaults to ~/.local/bin.
-  DRAUPNIR_INSTALL_DIR        Same as INSTALL_DIR, with higher precedence.
-  DRAUPNIR_GITHUB_OWNER       GitHub owner to download from. Defaults to BrokkAi.
-  DRAUPNIR_VERSION            Optional release tag to install, for example v0.24.2.
+  INSTALL_DIR             Install directory. Defaults to ~/.local/bin.
+  DRAUPNIR_INSTALL_DIR     Same as INSTALL_DIR, with higher precedence.
+  DRAUPNIR_GITHUB_OWNER    GitHub owner to download from. Defaults to foundev.
+  DRAUPNIR_VERSION         Optional release tag to install, for example v0.28.0.
   GITHUB_TOKEN             Optional token for GitHub API rate limits.
   PROFILE                  Optional shell profile to update when INSTALL_DIR is not on PATH.
 EOF
@@ -106,13 +106,15 @@ detect_platform() {
         OS_FAMILY="android"
         [[ "$ARCH" == "aarch64" ]] || die "no Android build is published for ${uname_m}; only aarch64-linux-android is released"
         RUST_TARGET="aarch64-linux-android"
+      elif is_musl_linux; then
+        die "musl-based Linux is not supported by the release archive; build Draupnir from source"
       else
         OS_FAMILY="linux"
         RUST_TARGET="${ARCH}-unknown-linux-gnu"
       fi
       ;;
     MINGW* | MSYS* | CYGWIN*)
-      die "Windows release assets are not installed by this script. Download the archive from https://github.com/${OWNER}/${REPO}/releases, build from source, or run this script in WSL."
+      die "Windows release assets are not installed by this script. Download the archive from https://github.com/${OWNER}/${REPO}/releases, or run 'cargo install --path . --locked' from a source checkout. Use WSL when you want the Linux build."
       ;;
     *) die "unsupported OS: ${uname_s}" ;;
   esac
@@ -175,6 +177,35 @@ hash_file() {
   fi
 }
 
+is_musl_linux() {
+  local loader ldd_version libc_version
+
+  if command -v ldd >/dev/null 2>&1; then
+    ldd_version="$(ldd --version 2>&1 | head -n 1 || true)"
+    case "$ldd_version" in
+      *musl* | *Musl* | *MUSL*) return 0 ;;
+      *GNU* | *glibc* | *GLIBC*) return 1 ;;
+    esac
+  fi
+
+  if command -v getconf >/dev/null 2>&1; then
+    libc_version="$(getconf GNU_LIBC_VERSION 2>/dev/null || true)"
+    [[ "$libc_version" == *glibc* || "$libc_version" == *GLIBC* ]] && return 1
+  fi
+
+  for loader in /lib/ld-musl-*.so.1 /lib64/ld-musl-*.so.1; do
+    [[ -e "$loader" ]] && return 0
+  done
+
+  return 1
+}
+
+require_hash_command() {
+  command -v sha256sum >/dev/null 2>&1 && return 0
+  command -v shasum >/dev/null 2>&1 && return 0
+  die "required checksum command not found: sha256sum or shasum"
+}
+
 verify_checksum() {
   local release_file="$1" asset_name="$2" asset_file="$3"
   local checksum_url checksum_file expected actual
@@ -184,10 +215,10 @@ verify_checksum() {
 
   checksum_file="${TMP_DIR}/${asset_name}.sha256"
   download_file "$checksum_url" "$checksum_file"
-  expected="$(awk '{print $1}' "$checksum_file" | head -n 1)"
+  expected="$(awk '{print $1}' "$checksum_file" | head -n 1 | tr '[:upper:]' '[:lower:]')"
   [[ "$expected" =~ ^[[:xdigit:]]{64}$ ]] || die "invalid checksum published for ${asset_name}"
 
-  actual="$(hash_file "$asset_file")"
+  actual="$(hash_file "$asset_file" | tr '[:upper:]' '[:lower:]')"
   [[ "$expected" == "$actual" ]] || die "checksum mismatch for ${asset_name}: expected ${expected}, got ${actual}"
 }
 
@@ -334,10 +365,11 @@ main() {
   require_command awk
   require_command grep
   require_command sed
+  detect_platform
   require_command unzip
   require_command install
   require_command find
-  detect_platform
+  require_hash_command
   ensure_install_dir
   TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/draupnir-installer.XXXXXX")"
   trap cleanup EXIT
