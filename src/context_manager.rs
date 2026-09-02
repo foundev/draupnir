@@ -38,7 +38,7 @@ use crate::tokens::{approximate_tokens, approximate_tokens_messages};
 /// Keeps oversized recap summarization from saturating provider rate
 /// limits when a turn fans out into many chunks. Two is a
 /// conservative default that avoids `429`s on the common providers
-/// without forcing a per-backend rate-limit story; raise once Anvil
+/// without forcing a per-backend rate-limit story; raise once Draupnir
 /// has provider-aware throttling.
 const MAX_CONCURRENT_CHUNK_REQUESTS: usize = 2;
 
@@ -1627,7 +1627,7 @@ mod tests {
         let msgs = build_turn_summarization_messages(&t);
         let body = msgs[1].text_content().unwrap();
         assert!(body.contains("Assistant: The model answer."));
-        assert!(!body.contains("Anvil Recap"));
+        assert!(!body.contains("Draupnir Recap"));
         assert!(!body.contains("Files changed"));
         // The host-written work summary must not leak into the model's history.
         assert!(!body.contains("Investigated the foo path"));

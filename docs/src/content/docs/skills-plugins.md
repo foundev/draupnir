@@ -1,13 +1,13 @@
 ---
 title: Skills and Plugins
-description: Extend Anvil with reusable instructions, commands, hooks, agents, and tools.
+description: Extend Draupnir with reusable instructions, commands, hooks, agents, and tools.
 ---
 
 Skills provide reusable instructions through `SKILL.md`. Claude Code-format plugins can bundle skills with commands, hooks, MCP servers, and subagents.
 
 ## Skill discovery
 
-Anvil discovers skills from:
+Draupnir discovers skills from:
 
 1. `$CODEX_HOME/skills` (or `~/.codex/skills`)
 2. `~/.claude/skills` and `~/.agents/skills`
@@ -37,7 +37,7 @@ Instructions and scripts execute with the same workspace, permission, and sandbo
 
 ## Plugin management
 
-Anvil discovers Claude Code installations and accepts Claude Code-format manifests at `.claude-plugin/plugin.json`.
+Draupnir discovers Claude Code installations and accepts Claude Code-format manifests at `.claude-plugin/plugin.json`.
 
 ```text
 /plugin list
@@ -48,7 +48,7 @@ Anvil discovers Claude Code installations and accepts Claude Code-format manifes
 /plugin remove <name>
 ```
 
-Plugins installed with `/plugin add` live in Anvil's configuration area. A plugin may add:
+Plugins installed with `/plugin add` live in Draupnir's configuration area. A plugin may add:
 
 - skills and slash commands;
 - subagent definitions;
@@ -59,6 +59,6 @@ That makes a plugin a code-and-process trust decision, not merely a prompt libra
 
 ## Hook execution
 
-Plugins can register `UserPromptSubmit`, `PreToolUse`, and `PostToolUse` command hooks. Anvil runs them as `sh -c` on Unix or `cmd /C` on Windows, in the session working directory, with inherited host environment and operating-system authority. They are not routed through the model tool permission gate or the shell sandbox.
+Plugins can register `UserPromptSubmit`, `PreToolUse`, and `PostToolUse` command hooks. Draupnir runs them as `sh -c` on Unix or `cmd /C` on Windows, in the session working directory, with inherited host environment and operating-system authority. They are not routed through the model tool permission gate or the shell sandbox.
 
 Exit code `0` accepts the hook and can contribute bounded stdout context. Exit code `2` blocks a prompt/tool or feeds post-tool feedback using stderr. Other exits and timeouts are logged as hook errors. Enabling a plugin therefore authorizes its hooks to execute at lifecycle events even when the model has not requested a shell tool.

@@ -22,7 +22,7 @@ pub enum PermissionPolicy {
 }
 
 #[derive(Debug, Clone)]
-pub struct AnvilRun {
+pub struct DraupnirRun {
     pub agent: String,
     pub cwd: PathBuf,
     pub behavior_mode: Option<&'static str>,
@@ -30,7 +30,7 @@ pub struct AnvilRun {
     pub echo: bool,
 }
 
-impl AnvilRun {
+impl DraupnirRun {
     pub fn read_only(agent: String, cwd: PathBuf) -> Self {
         Self {
             agent,
@@ -43,19 +43,19 @@ impl AnvilRun {
 }
 
 pub fn default_agent_command() -> String {
-    if let Ok(command) = std::env::var("ANVIL_AGENT") {
+    if let Ok(command) = std::env::var("DRAUPNIR_AGENT") {
         return command;
     }
 
-    let debug_binary = PathBuf::from("target/debug/anvil");
+    let debug_binary = PathBuf::from("target/debug/draupnir");
     if debug_binary.exists() {
         return debug_binary.display().to_string();
     }
 
-    "cargo run --quiet --bin anvil --".to_string()
+    "cargo run --quiet --bin draupnir --".to_string()
 }
 
-pub async fn run_prompt(config: AnvilRun, prompt: String) -> Result<String> {
+pub async fn run_prompt(config: DraupnirRun, prompt: String) -> Result<String> {
     let output = Arc::new(Mutex::new(String::new()));
     let output_for_notifications = output.clone();
     let echo = config.echo;

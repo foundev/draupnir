@@ -28,7 +28,7 @@ SHELL_ARGS_RE = re.compile(
     r"executing tool run_shell_command with args:\s*(\{.*\})\s+\(sandbox="
 )
 ARCHIVE_RUN_RE = re.compile(r"-r(\d+)-\d+-\d+\.zip$")
-WORKTREE_RE = re.compile(r"/opt/work/run/tmp/anvil-asgard-clones/[^/\s]+")
+WORKTREE_RE = re.compile(r"/opt/work/run/tmp/draupnir-asgard-clones/[^/\s]+")
 VERIFY_RE = re.compile(
     r"(?:\b(?:pytest|tox|mypy|pyright|ruff|eslint|tsc)\b|"
     r"\bpython(?:3)?\s+-m\s+(?:pytest|unittest|mypy)\b|"
@@ -118,9 +118,9 @@ def discover_results(
 
 def _iter_trace(archive: zipfile.ZipFile) -> Iterable[dict[str, Any]]:
     try:
-        member = archive.open("anvil-trace.jsonl")
+        member = archive.open("draupnir-trace.jsonl")
     except KeyError as error:
-        raise ValueError("archive is missing anvil-trace.jsonl") from error
+        raise ValueError("archive is missing draupnir-trace.jsonl") from error
     with member:
         for line_number, raw in enumerate(member, 1):
             if not raw.strip():
@@ -129,7 +129,7 @@ def _iter_trace(archive: zipfile.ZipFile) -> Iterable[dict[str, Any]]:
                 row = json.loads(raw)
             except json.JSONDecodeError as error:
                 raise ValueError(
-                    f"anvil-trace.jsonl:{line_number}: invalid JSON: {error.msg}"
+                    f"draupnir-trace.jsonl:{line_number}: invalid JSON: {error.msg}"
                 ) from error
             if isinstance(row, dict):
                 yield row
@@ -265,7 +265,7 @@ def extract_success_trace(source: ResultInput, agentresults_root: Path) -> dict[
                 if isinstance(command, str) and VERIFY_RE.search(command):
                     normalised = _normalise_command(command)
                     verification[normalised] = bool(row.get("success"))
-        stderr = _read_member(archive, "anvil-stderr.txt")
+        stderr = _read_member(archive, "draupnir-stderr.txt")
         stderr_counts = _stderr_windows(stderr)
         for command in _stderr_verification_commands(stderr):
             verification.setdefault(command, None)
@@ -357,7 +357,7 @@ def extract_success_trace(source: ResultInput, agentresults_root: Path) -> dict[
             "agent_result_sha256": result_digest,
             "archive": f"{source.task_id}/{source.archive_path.name}",
             "base_commit": source.result.get("baseCommit"),
-            "anvil_sha256": source.result.get("anvilSha256"),
+            "draupnir_sha256": source.result.get("draupnirSha256"),
             "selection_rule": "public result outcome == SUCCESS",
             "excluded_members": ["verifier-output.txt", "verifier.tar.gz"],
         },

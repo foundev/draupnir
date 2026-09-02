@@ -57,7 +57,7 @@ class RunLiveDetachedTests(unittest.TestCase):
             archives.mkdir(parents=True)
             running.mkdir(parents=True)
             with zipfile.ZipFile(archives / "captured.zip", "w") as archive:
-                archive.writestr("anvil-trace.jsonl", "{}\n")
+                archive.writestr("draupnir-trace.jsonl", "{}\n")
                 archive.writestr("result.json", "{}")
             with zipfile.ZipFile(archives / "cancelled.zip", "w") as archive:
                 archive.writestr("cancellation-error.json", "{}")

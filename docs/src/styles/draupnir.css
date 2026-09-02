@@ -1,0 +1,611 @@
+/*
+ * Breakpoint contract — shared across draupnir.css, DraupnirHeader.astro, and DraupnirHero.astro.
+ * CSS custom properties cannot be used in @media conditions, so these values are kept
+ * in sync by convention:
+ *   --bp-sm  35rem (560px)  — smallest hero/runtime-map collapse
+ *   --bp-md  50rem (800px)  — sidebar / header collapse
+ *   --bp-lg  64rem (1024px) — capability grid / replaceability collapse
+ *   --bp-xl  72rem (1152px) — header primary nav appears
+ */
+
+:root {
+  /*
+   * These resolve to the self-hosted families declared in astro.config.mjs, each
+   * already carrying a metric-matched fallback stack so first paint does not reflow.
+   */
+  --draupnir-font-display: var(--font-staatliches);
+  --draupnir-font-body: var(--font-rajdhani);
+  --draupnir-font-mono: var(--font-jetbrains-mono);
+  --sl-font: var(--draupnir-font-body);
+  --sl-font-mono: var(--draupnir-font-mono);
+
+  --draupnir-text-2xs: 0.5625rem;
+  --draupnir-text-xs: 0.625rem;
+  --draupnir-text-sm: 0.6875rem;
+  --draupnir-text-base: 0.75rem;
+  --draupnir-text-lg: 0.875rem;
+  --draupnir-text-xl: 1rem;
+  --draupnir-text-2xl: 1.125rem;
+  --draupnir-text-3xl: 1.5625rem;
+  --draupnir-text-display-page: clamp(3rem, 5vw, 4.8rem);
+  --draupnir-text-display-section: clamp(2.7rem, 5vw, 5rem);
+  --draupnir-text-display-hero: clamp(3.9rem, 7.4vw, 7.4rem);
+  --draupnir-text-display-hero-sm: clamp(3.5rem, 17vw, 5rem);
+  --draupnir-text-tagline: clamp(1.06rem, 1.45vw, 1.25rem);
+
+  --draupnir-tracking-tight: 0;
+  --draupnir-tracking-tighter: 0;
+  --draupnir-tracking-tightest: -0.01em;
+  --draupnir-tracking-wide: 0.035em;
+  --draupnir-tracking-wider: 0.06em;
+  --draupnir-tracking-widest: 0.09em;
+
+  --draupnir-leading-hero: 0.84;
+  --draupnir-leading-display: 0.95;
+  --draupnir-leading-body: 1.55;
+  --draupnir-leading-loose: 1.62;
+
+  --draupnir-weight-regular: 400;
+  --draupnir-weight-medium: 500;
+  --draupnir-weight-semibold: 600;
+  --draupnir-weight-bold: 700;
+  --draupnir-weight-extrabold: 800;
+
+  --draupnir-space-1: 0.25rem;
+  --draupnir-space-2: 0.5rem;
+  --draupnir-space-3: 0.75rem;
+  --draupnir-space-4: 1rem;
+  --draupnir-space-5: 1.25rem;
+  --draupnir-space-6: 1.5rem;
+  --draupnir-space-8: 2rem;
+  --draupnir-space-10: 2.5rem;
+  --draupnir-space-12: 3rem;
+  --draupnir-space-16: 4rem;
+  --draupnir-space-20: 5rem;
+  --draupnir-space-24: 6rem;
+
+  /*
+   * A clipped element cannot draw a border across the diagonal cuts. Each shell and
+   * matching 1px-inset shape therefore form a two-layer panel: the shell is the border
+   * ring, while an inset pseudo-element carries the real face and shadow.
+   */
+  --draupnir-chamfer-lg: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  --draupnir-chamfer-lg-inset: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+  --draupnir-chamfer-sm: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  --draupnir-chamfer-sm-inset: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  --draupnir-octagon-lg: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px);
+  --draupnir-octagon-lg-inset: polygon(15px 0, calc(100% - 15px) 0, 100% 15px, 100% calc(100% - 15px), calc(100% - 15px) 100%, 15px 100%, 0 calc(100% - 15px), 0 15px);
+  --draupnir-chamfer-reverse-lg: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  --draupnir-chamfer-reverse-lg-inset: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  --draupnir-three-cut-lg: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  --draupnir-three-cut-lg-inset: polygon(15px 0, calc(100% - 15px) 0, 100% 15px, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+  --draupnir-integrated-nav: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  --draupnir-integrated-nav-inset: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+
+  --draupnir-cobalt: #165de5;
+  --draupnir-ink: #151b22;
+  --draupnir-copy: #3e4855;
+  --draupnir-muted: #6f7984;
+  --draupnir-steel: #8e98a3;
+  --draupnir-surface: #f1f2f2;
+  --draupnir-surface-raised: #fafafa;
+  --draupnir-line: rgb(21 27 34 / 0.12);
+  --draupnir-line-strong: rgb(21 27 34 / 0.2);
+  --draupnir-grid: rgb(21 27 34 / 0.045);
+  --draupnir-grid-strong: rgb(21 27 34 / 0.075);
+  --draupnir-highlight: rgb(255 255 255 / 0.86);
+
+  --sl-color-accent-low: #dce7ff;
+  --sl-color-accent: var(--draupnir-cobalt);
+  --sl-color-accent-high: #102d68;
+  --sl-color-white: var(--draupnir-ink);
+  --sl-color-gray-1: #202833;
+  --sl-color-gray-2: var(--draupnir-copy);
+  --sl-color-gray-3: #66717d;
+  --sl-color-gray-4: #98a1ab;
+  --sl-color-gray-5: #c2c8ce;
+  --sl-color-gray-6: #e4e7e9;
+  --sl-color-black: var(--draupnir-surface);
+  --sl-content-width: 50rem;
+  --sl-sidebar-width: 18.5rem;
+  --sl-nav-height: 4.8rem;
+}
+
+:root[data-theme='dark'] {
+  --sl-color-accent-low: #102653;
+  --sl-color-accent-high: #dce7ff;
+  --sl-color-gray-1: #d9dee3;
+  --sl-color-gray-3: #828d99;
+  --sl-color-gray-4: #59636e;
+  --sl-color-gray-5: #343d47;
+  --sl-color-gray-6: #202830;
+  --draupnir-cobalt: #5b8cff;
+  --draupnir-ink: #eef1f4;
+  --draupnir-copy: #b6bec7;
+  --draupnir-muted: #828d99;
+  --draupnir-steel: #8f9aa5;
+  --draupnir-surface: #111820;
+  --draupnir-surface-raised: #18212a;
+  --draupnir-line: rgb(238 241 244 / 0.11);
+  --draupnir-line-strong: rgb(238 241 244 / 0.19);
+  --draupnir-grid: rgb(238 241 244 / 0.04);
+  --draupnir-grid-strong: rgb(238 241 244 / 0.07);
+  --draupnir-highlight: rgb(255 255 255 / 0.04);
+}
+
+/*
+ * Theme-flip transition guard.
+ *
+ * Chromium keeps the previous computed value when a transitioned property reads through
+ * a custom property that changes underneath it -- which is exactly what a theme flip
+ * does. Any element with a transition then stays stranded in the old palette: the
+ * capability cards keep their dark background on a light page, the hero badge link keeps
+ * near-white text on near-white. Elements without a transition repaint correctly, which
+ * is what makes it look so arbitrary.
+ *
+ * The fix is to take transitions out of the picture for the one frame the swap lands on.
+ * DraupnirHead.astro sets this attribute the moment data-theme changes and clears it once
+ * the new palette has painted.
+ */
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}
+
+html[data-has-hero] { --sl-content-width: 86rem; }
+
+body { background: var(--draupnir-surface); }
+
+/*
+ * The grid is viewport-fixed. `background-attachment: fixed` expresses that in one
+ * line but forces the browser to repaint the full viewport background on every
+ * scroll frame, which rules out compositor-only scrolling. A fixed-position layer
+ * paints identically and gets promoted once, so scrolling never touches it.
+ */
+body::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(var(--draupnir-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--draupnir-grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+  content: '';
+  pointer-events: none;
+}
+
+.draupnir-panel {
+  --draupnir-panel-shell: var(--draupnir-chamfer-lg);
+  --draupnir-panel-inner: var(--draupnir-chamfer-lg-inset);
+  position: relative;
+  isolation: isolate;
+  background: var(--draupnir-line-strong);
+  clip-path: var(--draupnir-panel-shell);
+}
+
+.draupnir-panel::after {
+  position: absolute;
+  z-index: -1;
+  inset: 1px;
+  clip-path: var(--draupnir-panel-inner);
+  content: '';
+}
+
+.draupnir-panel--octagon {
+  --draupnir-panel-shell: var(--draupnir-octagon-lg);
+  --draupnir-panel-inner: var(--draupnir-octagon-lg-inset);
+}
+
+.draupnir-panel--reverse {
+  --draupnir-panel-shell: var(--draupnir-chamfer-reverse-lg);
+  --draupnir-panel-inner: var(--draupnir-chamfer-reverse-lg-inset);
+}
+
+.draupnir-panel--three-cut {
+  --draupnir-panel-shell: var(--draupnir-three-cut-lg);
+  --draupnir-panel-inner: var(--draupnir-three-cut-lg-inset);
+}
+
+.site-title,
+.sl-markdown-content h1,
+.sl-markdown-content h2 {
+  font-family: var(--draupnir-font-display);
+  font-weight: var(--draupnir-weight-regular);
+  letter-spacing: var(--draupnir-tracking-tight);
+}
+
+.sl-markdown-content h1 {
+  font-size: var(--draupnir-text-display-page);
+  line-height: var(--draupnir-leading-display);
+}
+
+.sl-markdown-content h2 {
+  margin-top: 2.4em;
+  padding-top: 0.6em;
+  border-top: 1px solid var(--draupnir-line);
+}
+
+.sl-markdown-content h2::before {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.16rem;
+  margin: 0 0.55rem 0.17rem 0;
+  background: var(--draupnir-cobalt);
+  box-shadow: 0 0 9px color-mix(in srgb, var(--draupnir-cobalt) 42%, transparent);
+  content: '';
+}
+
+.page > header.header {
+  height: var(--sl-nav-height);
+  padding: var(--draupnir-space-2) max(0.65rem, 1.4vw);
+  border-bottom: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--draupnir-surface) 96%, transparent), transparent);
+}
+
+/* Interior pages join a rectangular header directly to the sidebar rail. */
+html:not([data-has-hero]) .page > header.header {
+  padding: 0;
+  background: var(--draupnir-surface);
+}
+
+html:not([data-has-hero]) .draupnir-header-shell {
+  --draupnir-panel-shell: var(--draupnir-integrated-nav);
+  --draupnir-panel-inner: var(--draupnir-integrated-nav-inset);
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
+@media (width >= 50rem) {
+  #starlight__sidebar.sidebar-pane {
+    top: var(--sl-nav-height);
+    padding: var(--draupnir-space-2) var(--draupnir-space-2) 0;
+    border-inline-end: 0;
+    background: color-mix(in srgb, var(--draupnir-surface) 90%, transparent);
+  }
+
+  #starlight__sidebar .sidebar-content {
+    padding: var(--draupnir-space-5) var(--draupnir-space-3) var(--draupnir-space-6);
+    border: 1px solid var(--draupnir-line);
+    border-bottom: 0;
+    background: color-mix(in srgb, var(--draupnir-surface-raised) 80%, transparent);
+  }
+
+  html:not([data-has-hero]) #starlight__sidebar.sidebar-pane {
+    padding-block-start: 0;
+    padding-inline-start: 0;
+  }
+
+  html:not([data-has-hero]) #starlight__sidebar .sidebar-content { border-block-start: 0; }
+}
+
+#starlight__sidebar .top-level > li + li { margin-top: var(--draupnir-space-4); }
+
+#starlight__sidebar .group-label .large,
+#starlight__sidebar a.large {
+  color: var(--draupnir-muted);
+  font-family: var(--draupnir-font-mono);
+  font-size: var(--draupnir-text-xs);
+  font-weight: var(--draupnir-weight-bold);
+  letter-spacing: var(--draupnir-tracking-widest);
+  text-transform: uppercase;
+}
+
+#starlight__sidebar a { border-radius: 0; color: var(--draupnir-muted); }
+
+#starlight__sidebar a:hover,
+#starlight__sidebar a:focus-visible {
+  color: var(--draupnir-ink);
+  background: color-mix(in srgb, var(--draupnir-cobalt) 5%, transparent);
+}
+
+#starlight__sidebar a[aria-current='page'] {
+  color: var(--draupnir-ink);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--draupnir-cobalt) 12%, transparent), transparent);
+  box-shadow: inset 2px 0 var(--draupnir-cobalt);
+  font-weight: var(--draupnir-weight-bold);
+}
+
+html[data-has-hero] .sl-markdown-content { position: relative; z-index: 3; }
+html[data-has-hero] .sl-markdown-content > .home-section:first-child { margin-top: -2.4rem; }
+
+.home-section {
+  margin-block: 0;
+  padding: clamp(3.5rem, 7vw, 6.5rem) clamp(0rem, 2vw, var(--draupnir-space-6));
+  border-top: 1px solid var(--draupnir-line);
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: var(--draupnir-space-3);
+  margin: 0 0 var(--draupnir-space-5);
+  color: var(--draupnir-muted);
+  font-family: var(--draupnir-font-mono);
+  font-size: var(--draupnir-text-xs);
+  font-weight: var(--draupnir-weight-bold);
+  letter-spacing: var(--draupnir-tracking-widest);
+  text-transform: uppercase;
+}
+
+.section-label::before {
+  width: 1.35rem;
+  height: 2px;
+  background: var(--draupnir-cobalt);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--draupnir-cobalt) 70%, transparent);
+  content: '';
+}
+
+.home-section h2 {
+  max-width: 18ch;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--draupnir-ink);
+  font-family: var(--draupnir-font-display);
+  font-size: var(--draupnir-text-display-section);
+  font-weight: var(--draupnir-weight-regular);
+  letter-spacing: var(--draupnir-tracking-tighter);
+  line-height: var(--draupnir-leading-display);
+}
+
+.home-section h2::before { display: none; }
+.home-section > p:not(.section-label) {
+  max-width: 48rem;
+  color: var(--draupnir-copy);
+  font-size: var(--draupnir-text-2xl);
+}
+
+/*
+ * Apply the cut once to each shared-border grid. Clipping individual cards would notch
+ * their shared dividers; the inner wrapper keeps both the diagonal ring and card rows even.
+ */
+.ownership-grid {
+  position: relative;
+  padding: 1px;
+  margin-top: var(--draupnir-space-10);
+  background: var(--draupnir-line-strong);
+  clip-path: var(--draupnir-chamfer-reverse-lg);
+}
+
+.ownership-grid__inner {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 1px;
+  margin: 0;
+  background: var(--draupnir-line-strong);
+  clip-path: var(--draupnir-chamfer-reverse-lg-inset);
+}
+
+.ownership-grid article {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: clamp(var(--draupnir-space-6), 3vw, var(--draupnir-space-10));
+  background: var(--draupnir-surface-raised);
+}
+
+.ownership-grid article:last-child {
+  background: color-mix(in srgb, var(--draupnir-cobalt) 7%, var(--draupnir-surface-raised));
+}
+
+.ownership-grid small {
+  color: var(--draupnir-cobalt);
+  font-family: var(--draupnir-font-mono);
+  font-size: var(--draupnir-text-xs);
+  font-weight: var(--draupnir-weight-bold);
+  letter-spacing: var(--draupnir-tracking-widest);
+}
+
+.ownership-grid h3 {
+  margin: var(--draupnir-space-3) 0 var(--draupnir-space-5);
+  color: var(--draupnir-ink);
+  font-size: var(--draupnir-text-3xl);
+}
+
+.ownership-grid ul {
+  display: grid;
+  flex: 1;
+  gap: var(--draupnir-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ownership-grid li { color: var(--draupnir-copy); }
+.ownership-grid li::before {
+  margin-right: var(--draupnir-space-2);
+  color: var(--draupnir-cobalt);
+  content: '—';
+}
+
+.capability-grid {
+  position: relative;
+  padding: 1px;
+  margin-top: var(--draupnir-space-10);
+  background: var(--draupnir-line-strong);
+  clip-path: var(--draupnir-octagon-lg);
+}
+
+.capability-grid__inner {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 1px;
+  margin: 0;
+  background: var(--draupnir-line-strong);
+  clip-path: var(--draupnir-octagon-lg-inset);
+}
+
+.capability-grid a {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 13rem;
+  padding: var(--draupnir-space-6);
+  background: var(--draupnir-surface-raised);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.capability-grid a:hover {
+  z-index: 1;
+  background: color-mix(in srgb, var(--draupnir-cobalt) 8%, var(--draupnir-surface-raised));
+  transform: translateY(-3px);
+}
+
+.capability-grid span {
+  color: var(--draupnir-cobalt);
+  font-family: var(--draupnir-font-mono);
+  font-size: var(--draupnir-text-xs);
+  font-weight: var(--draupnir-weight-bold);
+}
+
+.capability-grid h3 {
+  margin: var(--draupnir-space-10) 0 var(--draupnir-space-3);
+  color: var(--draupnir-ink);
+  font-size: var(--draupnir-text-2xl);
+}
+
+.capability-grid p {
+  flex: 1;
+  margin: 0;
+  color: var(--draupnir-muted);
+  font-size: var(--draupnir-text-lg);
+  line-height: var(--draupnir-leading-body);
+}
+
+.replaceability-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+  gap: clamp(var(--draupnir-space-8), 6vw, var(--draupnir-space-24));
+  align-items: center;
+}
+
+.replaceability-panel > div > p:not(.section-label) {
+  max-width: 48rem;
+  color: var(--draupnir-copy);
+  font-size: var(--draupnir-text-2xl);
+}
+
+.replaceability-panel aside {
+  padding: clamp(var(--draupnir-space-6), 3vw, var(--draupnir-space-10));
+  background: color-mix(in srgb, var(--draupnir-cobalt) 35%, var(--draupnir-line));
+}
+
+.replaceability-panel aside::after {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--draupnir-cobalt) 9%, transparent), transparent 58%),
+    var(--draupnir-surface-raised);
+  box-shadow: inset 0 -4px var(--draupnir-cobalt);
+}
+
+.replaceability-panel aside small {
+  color: var(--draupnir-cobalt);
+  font-family: var(--draupnir-font-mono);
+  font-size: var(--draupnir-text-xs);
+  font-weight: var(--draupnir-weight-bold);
+  letter-spacing: var(--draupnir-tracking-widest);
+}
+
+.replaceability-panel aside h3 {
+  margin: var(--draupnir-space-5) 0 var(--draupnir-space-3);
+  color: var(--draupnir-ink);
+  font-size: var(--draupnir-text-3xl);
+}
+
+.replaceability-panel aside p {
+  margin: 0;
+  color: var(--draupnir-copy);
+  font-size: var(--draupnir-text-lg);
+  line-height: var(--draupnir-leading-loose);
+}
+
+.replaceability-panel aside a {
+  display: inline-flex;
+  gap: var(--draupnir-space-2);
+  margin-top: var(--draupnir-space-5);
+  color: var(--draupnir-cobalt);
+  font-family: var(--draupnir-font-mono);
+  font-size: var(--draupnir-text-sm);
+  font-weight: var(--draupnir-weight-bold);
+  letter-spacing: var(--draupnir-tracking-wide);
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.replaceability-panel aside a:hover {
+  text-decoration: underline;
+  text-underline-offset: var(--draupnir-space-1);
+}
+
+.docs-callout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--draupnir-space-8);
+  align-items: end;
+  padding: clamp(var(--draupnir-space-8), 5vw, var(--draupnir-space-16));
+  background: color-mix(in srgb, var(--draupnir-cobalt) 35%, var(--draupnir-line));
+}
+
+.docs-callout::after {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--draupnir-cobalt) 10%, transparent), transparent 55%),
+    var(--draupnir-surface-raised);
+}
+
+.docs-callout h2 { max-width: 14ch; }
+.docs-callout p { max-width: 42rem; margin-bottom: 0; color: var(--draupnir-copy); }
+
+.docs-callout a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--draupnir-space-2);
+  padding: var(--draupnir-space-3) var(--draupnir-space-4);
+  background: var(--draupnir-cobalt);
+  color: white;
+  font-family: var(--draupnir-font-mono);
+  font-size: var(--draupnir-text-sm);
+  font-weight: var(--draupnir-weight-extrabold);
+  letter-spacing: var(--draupnir-tracking-wider);
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+  clip-path: var(--draupnir-chamfer-sm);
+}
+
+.replaceability-panel aside::before,
+.docs-callout::before {
+  position: absolute;
+  z-index: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--draupnir-cobalt), transparent 70%);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--draupnir-cobalt) 55%, transparent);
+  content: '';
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.replaceability-panel aside::before { inset: auto 16px 0 0; }
+.docs-callout::before { inset: 0 16px auto 0; }
+
+@media (width < 64rem) {
+  .capability-grid__inner { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .replaceability-panel { grid-template-columns: 1fr; }
+}
+
+@media (width < 50rem) {
+  :root { --sl-nav-height: 4.45rem; }
+  .ownership-grid__inner,
+  .capability-grid__inner,
+  .docs-callout { grid-template-columns: 1fr; }
+  .docs-callout { align-items: start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capability-grid a { transition: none; }
+  .capability-grid a:hover { transform: none; }
+}

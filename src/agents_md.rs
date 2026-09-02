@@ -450,7 +450,7 @@ mod tests {
     #[test]
     fn no_git_ancestor_uses_cwd_only_no_parent_walk() {
         let tmp = tempfile::Builder::new()
-            .prefix("anvil-agents-md")
+            .prefix("draupnir-agents-md")
             .tempdir()
             .unwrap();
         // Sibling AGENTS.md outside the cwd subdir; if we wrongly walked

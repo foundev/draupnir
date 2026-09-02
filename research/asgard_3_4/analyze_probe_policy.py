@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Compare dynamic Asgard windows with the explicit-probe policy.
 
-Inputs are Anvil result archives produced by the Q4 policy experiment. The
+Inputs are Draupnir result archives produced by the Q4 policy experiment. The
 analyzer uses structured policy, window, kind, and candidate-usage trace records;
 it never infers a probe from prose. Candidate cost includes both each lane's tool
-loop and its mandatory window-summary call, exactly as charged by Anvil.
+loop and its mandatory window-summary call, exactly as charged by Draupnir.
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ def discover_inputs(
                 members = set(archive.namelist())
         except zipfile.BadZipFile:
             continue
-        if {"anvil-trace.jsonl", "result.json"}.issubset(members):
+        if {"draupnir-trace.jsonl", "result.json"}.issubset(members):
             captured.append(path)
     return captured
 
@@ -59,9 +59,9 @@ def _member(archive: zipfile.ZipFile, name: str) -> dict[str, Any]:
 
 def _trace_rows(archive: zipfile.ZipFile) -> list[dict[str, Any]]:
     try:
-        raw = archive.read("anvil-trace.jsonl").decode("utf-8", "replace")
+        raw = archive.read("draupnir-trace.jsonl").decode("utf-8", "replace")
     except KeyError as error:
-        raise ValueError(f"{archive.filename} has no anvil-trace.jsonl") from error
+        raise ValueError(f"{archive.filename} has no draupnir-trace.jsonl") from error
     rows: list[dict[str, Any]] = []
     for line_number, line in enumerate(raw.splitlines(), 1):
         if not line.strip():
@@ -70,7 +70,7 @@ def _trace_rows(archive: zipfile.ZipFile) -> list[dict[str, Any]]:
             value = json.loads(line)
         except json.JSONDecodeError as error:
             raise ValueError(
-                f"{archive.filename}:anvil-trace.jsonl:{line_number}: {error.msg}"
+                f"{archive.filename}:draupnir-trace.jsonl:{line_number}: {error.msg}"
             ) from error
         if isinstance(value, dict):
             rows.append(value)

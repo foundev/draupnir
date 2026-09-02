@@ -1,6 +1,6 @@
-# Anvil documentation
+# Draupnir documentation
 
-The Anvil documentation site uses [Astro Starlight](https://starlight.astro.build/).
+The Draupnir documentation site uses [Astro Starlight](https://starlight.astro.build/).
 
 ## Local development
 
@@ -10,7 +10,7 @@ npm ci
 npm run dev
 ```
 
-Astro serves the site at the root during local development and production. The production site is deployed to the custom domain [`https://anvil.brokk.ai`](https://anvil.brokk.ai), so its default base path is `/`.
+Astro serves the site at the root during local development and production. The production site is deployed to the custom domain [`https://draupnir.brokk.ai`](https://draupnir.brokk.ai), so its default base path is `/`.
 
 ## Validation
 

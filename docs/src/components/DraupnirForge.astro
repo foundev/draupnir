@@ -1,10 +1,10 @@
 <canvas class="forge-canvas" data-forge-canvas aria-hidden="true"></canvas>
-{/* Layout anchor for the anvil silhouette: marks where in the hero it settles. */}
-<div class="anvil-forge" data-anvil-forge aria-hidden="true"></div>
+{/* Layout anchor for the draupnir silhouette: marks where in the hero it settles. */}
+<div class="draupnir-forge" data-draupnir-forge aria-hidden="true"></div>
 
 <script>
-  // Anvil silhouette in a 100x70 design space (y down). M/L/Q/Z mirror canvas path ops.
-  const ANVIL_OPS: Array<[string, ...number[]]> = [
+  // Draupnir silhouette in a 100x70 design space (y down). M/L/Q/Z mirror canvas path ops.
+  const DRAUPNIR_OPS: Array<[string, ...number[]]> = [
     ['M', 3, 21],
     ['Q', 9, 12, 24, 14], // horn top -> face top
     ['L', 86, 14], // face top
@@ -49,7 +49,7 @@
     ctx.beginPath();
     let sx = 0;
     let sy = 0;
-    for (const op of ANVIL_OPS) {
+    for (const op of DRAUPNIR_OPS) {
       if (op[0] === 'M') {
         sx = op[1]; sy = op[2];
         ctx.moveTo(op[1] * scale, op[2] * scale);
@@ -125,7 +125,7 @@
     root.dataset.ready = 'true';
 
     // The canvas is the full-bleed field (particles scatter page-wide); the root div
-    // only marks where in the hero the anvil silhouette settles.
+    // only marks where in the hero the draupnir silhouette settles.
     const canvas = root.parentElement?.querySelector<HTMLCanvasElement>('canvas[data-forge-canvas]');
     const context = canvas?.getContext('2d');
     const field = canvas?.parentElement;
@@ -228,7 +228,7 @@
     }
 
     function scatterPositions() {
-      // Dust spread across the entire hero before it condenses into the anvil.
+      // Dust spread across the entire hero before it condenses into the draupnir.
       for (let i = 0; i < n; i++) {
         xs[i] = Math.random() * width;
         ys[i] = Math.random() * height;
@@ -249,7 +249,7 @@
        * it stays correct across the sidebar breakpoint, and `clientWidth` excludes the
        * scrollbar, so bleeding to it can never introduce horizontal overflow.
        *
-       * Only the backdrop bleeds. `.hero-copy` and the anvil stay in the column.
+       * Only the backdrop bleeds. `.hero-copy` and the draupnir stay in the column.
        */
       const heroRect = field.getBoundingClientRect();
       const viewportW = document.documentElement.clientWidth;
@@ -559,7 +559,7 @@
     }
 
     function drawStatic() {
-      // Reduced-motion: the anvil, already forged. Durable, like the sessions.
+      // Reduced-motion: the draupnir, already forged. Durable, like the sessions.
       layout();
       context.clearRect(0, 0, width, height);
       for (let pass = 0; pass < 2; pass++) {
@@ -649,7 +649,7 @@
   // Rasterizing the silhouette is a few milliseconds of synchronous work that the
   // first paint does not need. Let the page render, then build the field.
   const boot = () =>
-    document.querySelectorAll<HTMLElement>('[data-anvil-forge]').forEach(initializeForge);
+    document.querySelectorAll<HTMLElement>('[data-draupnir-forge]').forEach(initializeForge);
   if ('requestIdleCallback' in window) window.requestIdleCallback(boot, { timeout: 500 });
   else setTimeout(boot, 0);
 </script>
@@ -672,7 +672,7 @@
       pointer-events: none;
     }
 
-    .anvil-forge {
+    .draupnir-forge {
       --forge-dot: 22 93 229;
       --forge-accent: 71 107 209;
       --forge-hot: 18 42 110;
@@ -683,25 +683,25 @@
       pointer-events: auto;
     }
 
-    :global(:root[data-theme='dark']) .anvil-forge {
+    :global(:root[data-theme='dark']) .draupnir-forge {
       --forge-dot: 91 140 255;
       --forge-accent: 168 196 255;
       --forge-hot: 221 231 255;
     }
 
-    .anvil-forge::before {
+    .draupnir-forge::before {
       position: absolute;
       inset: 12% 6% 18%;
       background: radial-gradient(
         ellipse at 50% 42%,
-        color-mix(in srgb, var(--anvil-cobalt) 9%, transparent),
+        color-mix(in srgb, var(--draupnir-cobalt) 9%, transparent),
         transparent 68%
       );
       content: '';
     }
 
     @media (width < 62rem) {
-      .anvil-forge {
+      .draupnir-forge {
         width: min(100%, 40rem);
         height: clamp(19rem, 52vw, 24rem);
         justify-self: center;
@@ -709,7 +709,7 @@
     }
 
     @media (width < 35rem) {
-      .anvil-forge { height: 17rem; }
+      .draupnir-forge { height: 17rem; }
     }
   }
 </style>

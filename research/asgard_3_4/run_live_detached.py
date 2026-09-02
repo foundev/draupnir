@@ -74,7 +74,7 @@ def controller_state(spec: LaunchSpec) -> dict[str, Any]:
         except zipfile.BadZipFile:
             incomplete_archives += 1
             continue
-        if {"anvil-trace.jsonl", "result.json"}.issubset(members):
+        if {"draupnir-trace.jsonl", "result.json"}.issubset(members):
             captured_archives += 1
         else:
             incomplete_archives += 1

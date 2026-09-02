@@ -2,7 +2,7 @@
 """Replay a small panel of archived Asgard supervisor decisions.
 
 This does not run candidates, tools, repositories, or graders. It reconstructs
-the final candidate conversations from Anvil's archived LLM trace, supplies the
+the final candidate conversations from Draupnir's archived LLM trace, supplies the
 selected endpoint's production diff and test-file inventory in production
 Asgard order, and asks the supervisor model to judge the same terminal decision
 under alternate prompts.
@@ -22,9 +22,9 @@ from pathlib import Path
 from typing import Any
 
 
-LANE_RE = re.compile(r"anvil-asgard-(?:clones|worktrees)/asgard-(\d+)-")
+LANE_RE = re.compile(r"draupnir-asgard-(?:clones|worktrees)/asgard-(\d+)-")
 CANDIDATE_PATH_RE = re.compile(
-    r"anvil-asgard-(?:clones|worktrees)/asgard-\d+-[^\\\s\"']+"
+    r"draupnir-asgard-(?:clones|worktrees)/asgard-\d+-[^\\\s\"']+"
 )
 SELECTED_RE = re.compile(r"\[Asgard selected lane (\d+):")
 EXIT_CODE_RE = re.compile(
@@ -69,7 +69,7 @@ def response_message(response: dict[str, Any]) -> dict[str, Any]:
 def normalize_message(message: dict[str, Any]) -> dict[str, Any]:
     normalized = json.loads(json.dumps(message))
     raw = json.dumps(normalized, ensure_ascii=False)
-    raw = CANDIDATE_PATH_RE.sub("anvil-asgard-clones/asgard-LANE", raw)
+    raw = CANDIDATE_PATH_RE.sub("draupnir-asgard-clones/asgard-LANE", raw)
     return json.loads(raw)
 
 
@@ -362,7 +362,7 @@ def reconstruct_case(
         patch = archive_text(zf, "model.patch")
         events = [
             json.loads(line)
-            for line in archive_text(zf, "anvil-trace.jsonl").splitlines()
+            for line in archive_text(zf, "draupnir-trace.jsonl").splitlines()
             if line.strip()
         ]
         acp_events = [

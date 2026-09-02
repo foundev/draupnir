@@ -24,7 +24,7 @@ class PrepareLiveExperimentsTests(unittest.TestCase):
                 "source_tasks_root": str(root / "source"),
                 "output_root": str(root / "output"),
                 "runner_root": str(root),
-                "anvil_bin": "/anvil",
+                "draupnir_bin": "/draupnir",
                 "candidate_model": "deepseek::flash",
                 "supervisor_model": "deepseek::pro",
                 "candidate_count": 3,

@@ -79,9 +79,9 @@ def runner_command(
         str(manifest["candidate_count"]),
         "--asgard-supervisor",
         manifest["supervisor_model"],
-        "--anvil-bin",
-        manifest["anvil_bin"],
-        "--no-anvil-rebuild",
+        "--draupnir-bin",
+        manifest["draupnir_bin"],
+        "--no-draupnir-rebuild",
         "--headless",
     ]
 

@@ -120,7 +120,7 @@ pub const DS4_DEFAULT_URL: &str = "http://127.0.0.1:8000";
 /// reverse proxy (e.g. `DS4_BASE_URL=http://127.0.0.1:9000`). When set it
 /// short-circuits process/port autodetection entirely. Mirrors the
 /// `OPENROUTER_API_KEY` convention of using the upstream-style env name with
-/// no `BROKK_`/`ANVIL_` prefix.
+/// no `BROKK_`/`DRAUPNIR_` prefix.
 pub const DS4_BASE_URL_ENV: &str = "DS4_BASE_URL";
 
 /// Resolve the base URL to probe for a local `ds4-server`, or `None` when
@@ -138,7 +138,7 @@ pub const DS4_BASE_URL_ENV: &str = "DS4_BASE_URL";
 /// Returns `None` when neither the env override nor a running process is
 /// present, so discovery omits ds4 entirely -- the running process *is* the
 /// opt-in. This is re-evaluated on every discovery refresh, so starting
-/// ds4-server after Anvil (and then creating/refreshing a session) brings it
+/// ds4-server after Draupnir (and then creating/refreshing a session) brings it
 /// online on whatever port it ended up on.
 pub fn ds4_base_url() -> Option<String> {
     if let Ok(url) = std::env::var(DS4_BASE_URL_ENV) {

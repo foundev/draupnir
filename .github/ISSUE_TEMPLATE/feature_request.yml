@@ -1,19 +1,19 @@
 name: Feature request
-description: Suggest a capability or workflow Anvil could support. A detailed design is not required.
+description: Suggest a capability or workflow Draupnir could support. A detailed design is not required.
 labels:
   - enhancement
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Anvil. Describe the use case at whatever level of detail you have; you do not need to propose an implementation.
+        Thanks for helping improve Draupnir. Describe the use case at whatever level of detail you have; you do not need to propose an implementation.
 
   - type: textarea
     id: use-case
     attributes:
-      label: What would you like Anvil to help you do?
+      label: What would you like Draupnir to help you do?
       description: Describe the problem, workflow, or capability that would be useful to you.
-      placeholder: I would like Anvil to...
+      placeholder: I would like Draupnir to...
     validations:
       required: true
 

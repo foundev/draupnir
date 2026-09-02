@@ -1,4 +1,4 @@
-//! Minimal headless ACP client behind `anvil --print` (#356).
+//! Minimal headless ACP client behind `draupnir --print` (#356).
 //!
 //! Connects an in-process one-shot ACP client to the same agent component
 //! `run_agent` serves over stdio, runs exactly one prompt, prints the result
@@ -35,7 +35,7 @@ use crate::structured_output::{
 };
 
 /// Effort suffixes accepted in `--model MODEL[+EFFORT]`. Matches Mjolnir's
-/// list; `none` canonicalizes to `off` (Anvil's spelling for "no provider
+/// list; `none` canonicalizes to `off` (Draupnir's spelling for "no provider
 /// reasoning controls").
 const KNOWN_REASONING_EFFORTS: &[&str] = &[
     "off", "none", "minimal", "low", "medium", "high", "xhigh", "max",
@@ -67,7 +67,7 @@ pub enum PermissionMode {
 
 impl PermissionMode {
     /// Value pushed to the agent-side `permission_mode` session config.
-    /// Always applied: Anvil's own session default is `auto`, whose LLM
+    /// Always applied: Draupnir's own session default is `auto`, whose LLM
     /// classifier decides permissions without ever consulting the client, so
     /// leaving it in place would break the documented headless table.
     ///
@@ -152,7 +152,7 @@ struct RunState {
     prompt_sent: bool,
     stop_reason: Option<StopReason>,
     usage: Option<AcpUsage>,
-    /// `_meta.anvil.turnFailure.message` from the usage update: Anvil
+    /// `_meta.draupnir.turnFailure.message` from the usage update: Draupnir
     /// reports LLM turn failures there while still ending the turn with
     /// `end_turn`, so this is the only reliable failure signal.
     turn_failure: Option<String>,
@@ -350,7 +350,7 @@ pub fn load_response_schema(
 
 fn structured_output_request_meta(request: &StructuredOutputRequest) -> Meta {
     serde_json::from_value(serde_json::json!({
-        "anvil": {
+        "draupnir": {
             "structuredOutput": {
                 "schemaName": request.schema_name,
                 "schema": request.schema,
@@ -399,7 +399,7 @@ fn permission_decision(
         ),
     };
     if allow {
-        // Prefer AllowOnce over AllowAlways: Anvil persists AllowAlways
+        // Prefer AllowOnce over AllowAlways: Draupnir persists AllowAlways
         // approvals into the repo's .brokk/permissions.json, and a one-shot
         // headless run must not leave durable grants behind.
         options
@@ -559,8 +559,8 @@ async fn drive(
         .send_request(
             InitializeRequest::new(ProtocolVersion::V1)
                 .client_info(
-                    Implementation::new("anvil-headless", env!("CARGO_PKG_VERSION"))
-                        .title("Anvil --print"),
+                    Implementation::new("draupnir-headless", env!("CARGO_PKG_VERSION"))
+                        .title("Draupnir --print"),
                 )
                 .client_capabilities(
                     ClientCapabilities::new()
@@ -716,7 +716,7 @@ async fn drive(
     unreachable!("headless structured-output attempts always return or retry")
 }
 
-/// Run one headless prompt against an in-process Anvil agent. Once the run
+/// Run one headless prompt against an in-process Draupnir agent. Once the run
 /// starts, the promised output payload is emitted even on agent/transport
 /// failure; only pre-run validation (empty prompt, unreadable stdin, bad
 /// `--cwd`) exits with just a stderr message. A non-`Ok` return carries the
@@ -834,7 +834,7 @@ pub async fn run(
     let stop_reason = if interrupted {
         "cancelled"
     } else if state.turn_failure.is_some() {
-        // Anvil ends failed turns with `end_turn` (ACP has no errored stop
+        // Draupnir ends failed turns with `end_turn` (ACP has no errored stop
         // reason) and reports the failure via usage-update meta; surface it
         // as `error` so scripts don't have to scrape the streamed text.
         "error"
@@ -908,7 +908,7 @@ mod tests {
         PermissionOption::new(id.to_string(), id.to_string(), kind)
     }
 
-    fn anvil_prompt_options() -> Vec<PermissionOption> {
+    fn draupnir_prompt_options() -> Vec<PermissionOption> {
         vec![
             option("allow_always", PermissionOptionKind::AllowAlways),
             option("allow", PermissionOptionKind::AllowOnce),
@@ -953,14 +953,14 @@ mod tests {
 
     #[test]
     fn manual_mode_rejects_every_permission_request() {
-        let options = anvil_prompt_options();
+        let options = draupnir_prompt_options();
         let decision = permission_decision(PermissionMode::Manual, Some(ToolKind::Edit), &options);
         assert_eq!(decision.unwrap().option_id.to_string(), "reject");
     }
 
     #[test]
     fn auto_mode_allows_edits_rejects_execution() {
-        let options = anvil_prompt_options();
+        let options = draupnir_prompt_options();
         for kind in [ToolKind::Edit, ToolKind::Delete, ToolKind::Move] {
             let decision = permission_decision(PermissionMode::Auto, Some(kind), &options);
             assert_eq!(decision.unwrap().option_id.to_string(), "allow");
@@ -976,7 +976,7 @@ mod tests {
 
     #[test]
     fn yolo_mode_allows_everything_preferring_allow_once() {
-        let options = anvil_prompt_options();
+        let options = draupnir_prompt_options();
         let decision = permission_decision(PermissionMode::Yolo, Some(ToolKind::Execute), &options);
         // AllowOnce preferred so a one-shot run leaves no durable grants.
         assert_eq!(decision.unwrap().option_id.to_string(), "allow");
@@ -1064,7 +1064,7 @@ mod tests {
         assert_eq!(parsed, request);
 
         let response_meta: Meta = serde_json::from_value(serde_json::json!({
-            "anvil": {
+            "draupnir": {
                 "structuredOutput": {
                     "status": "success",
                     "schema_name": "task_evaluation",
@@ -1093,9 +1093,9 @@ mod tests {
     }
 
     #[test]
-    fn turn_failure_message_reads_anvil_meta() {
+    fn turn_failure_message_reads_draupnir_meta() {
         let meta: Meta = serde_json::from_value(serde_json::json!({
-            "anvil": { "turnFailure": { "retryable": false, "message": "boom" } }
+            "draupnir": { "turnFailure": { "retryable": false, "message": "boom" } }
         }))
         .unwrap();
         assert_eq!(turn_failure_message(Some(&meta)), Some("boom".to_string()));

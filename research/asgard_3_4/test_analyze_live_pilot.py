@@ -52,7 +52,7 @@ class AnalyzeLivePilotTest(unittest.TestCase):
             path = Path(directory) / "run.zip"
             with zipfile.ZipFile(path, "w") as archive:
                 archive.writestr(
-                    "anvil-trace.jsonl",
+                    "draupnir-trace.jsonl",
                     "\n".join(json.dumps(row) for row in rows),
                 )
                 archive.writestr(
@@ -124,7 +124,7 @@ class AnalyzeLivePilotTest(unittest.TestCase):
             path = Path(directory) / "run.zip"
             with zipfile.ZipFile(path, "w") as archive:
                 archive.writestr(
-                    "anvil-trace.jsonl",
+                    "draupnir-trace.jsonl",
                     "\n".join(json.dumps(row) for row in rows),
                 )
                 archive.writestr("result.json", "{}")
@@ -136,7 +136,7 @@ class AnalyzeLivePilotTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             with zipfile.ZipFile(root / "captured.zip", "w") as archive:
-                archive.writestr("anvil-trace.jsonl", "{}\n")
+                archive.writestr("draupnir-trace.jsonl", "{}\n")
                 archive.writestr("result.json", "{}")
             with zipfile.ZipFile(root / "cancelled.zip", "w") as archive:
                 archive.writestr("cancellation-error.json", "{}")

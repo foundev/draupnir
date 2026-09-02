@@ -1,16 +1,16 @@
 ---
 title: Overview
-description: Understand Anvil's ACP boundary, responsibilities, and supported surfaces.
+description: Understand Draupnir's ACP boundary, responsibilities, and supported surfaces.
 ---
 
-Anvil is a Rust [Agent Client Protocol](https://agentclientprotocol.com/) server. It is the portable agent backend behind an editor, bot, TUI, or automation rather than a user interface of its own.
+Draupnir is a Rust [Agent Client Protocol](https://agentclientprotocol.com/) server. It is the portable agent backend behind an editor, bot, TUI, or automation rather than a user interface of its own.
 
 ## The Boundary
 
-An ACP client launches Anvil as a subprocess and communicates over stdio using JSON-RPC.
+An ACP client launches Draupnir as a subprocess and communicates over stdio using JSON-RPC.
 
 ```text
-ACP client           stdio / JSON-RPC           Anvil
+ACP client           stdio / JSON-RPC           Draupnir
 ----------           ----------------           -----
 editor        --------------------------------> agent loop
 issue bot     --------------------------------> model routing
@@ -18,9 +18,9 @@ custom TUI    --------------------------------> permissions
 automation    --------------------------------> tools + sessions
 ```
 
-The client owns conversation presentation, controls, and permission UI. Anvil owns model routing, tool execution, permission enforcement, session persistence, context management, sandbox selection, and MCP subprocesses.
+The client owns conversation presentation, controls, and permission UI. Draupnir owns model routing, tool execution, permission enforcement, session persistence, context management, sandbox selection, and MCP subprocesses.
 
-ACP session options are client-owned. Model, behavior, reasoning effort, service tier, and permission selections apply to the live session and must be resubmitted by a client when appropriate. Anvil persists durable history and session metadata, not a universal UI preference profile. Stream timeouts are separate process defaults with an in-memory session override.
+ACP session options are client-owned. Model, behavior, reasoning effort, service tier, and permission selections apply to the live session and must be resubmitted by a client when appropriate. Draupnir persists durable history and session metadata, not a universal UI preference profile. Stream timeouts are separate process defaults with an in-memory session override.
 
 ## Supported Surfaces
 
@@ -32,6 +32,6 @@ Codex/ChatGPT, Bedrock, Ollama, ds4, DeepSeek, Kimi, OpenAI-compatible endpoints
 
 ## Start Here
 
-Use [Install Anvil](/install/) for release and source options, then complete the [ten-minute evaluation](/evaluate-anvil/) to verify one client, one provider, Bifrost-backed code intelligence, permission behavior, and session context.
+Use [Install Draupnir](/install/) for release and source options, then complete the [ten-minute evaluation](/evaluate-draupnir/) to verify one client, one provider, Bifrost-backed code intelligence, permission behavior, and session context.
 
 Before connecting private source code or third-party extensions, review [Data and Trust Boundaries](/data-boundaries/) and [Permissions and Sandboxing](/permissions-sandboxing/).

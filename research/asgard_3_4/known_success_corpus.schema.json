@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://anvil.invalid/research/asgard-3-4/known-success-corpus.schema.json",
+  "$id": "https://draupnir.invalid/research/asgard-3-4/known-success-corpus.schema.json",
   "title": "Asgard v6/v9 known-success corpus JSONL record",
   "oneOf": [
     { "$ref": "#/$defs/manifest" },
@@ -106,7 +106,7 @@
         "agent_result_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "archive": { "type": "string" },
         "base_commit": { "type": ["string", "null"] },
-        "anvil_sha256": { "type": ["string", "null"] },
+        "draupnir_sha256": { "type": ["string", "null"] },
         "selection_rule": { "type": "string" },
         "excluded_members": {
           "type": "array",

@@ -153,14 +153,14 @@ fn effective_mcp_servers(
 ) -> Vec<McpServerConfig> {
     let mut servers = crate::setup_state::read_mcp_servers();
     // Plugin-provided servers merge below user-configured ones: a
-    // configured server of the same name wins, and bifrost stays Anvil's
+    // configured server of the same name wins, and bifrost stays Draupnir's
     // managed binary even when a plugin (e.g. brokk) ships its own.
     let home = dirs::home_dir();
     for server in crate::plugins::discover(Some(cwd), home.as_deref()).mcp_servers() {
         if server.name == "bifrost" {
             tracing::debug!(
                 command = %server.command,
-                "ignoring plugin bifrost MCP server; Anvil manages bifrost natively"
+                "ignoring plugin bifrost MCP server; Draupnir manages bifrost natively"
             );
             continue;
         }
@@ -338,7 +338,7 @@ pub(crate) fn validate_additional_directories(
     Ok(directories)
 }
 
-/// An ACP lifecycle request referenced an MCP server transport Anvil does not
+/// An ACP lifecycle request referenced an MCP server transport Draupnir does not
 /// support. Stdio, HTTP, and SSE are supported; unknown future transports are
 /// rejected rather than silently dropped, which would leave the session looking
 /// configured while the requested tools were missing.
@@ -348,7 +348,7 @@ pub struct UnsupportedMcpTransport {
     pub transport: &'static str,
 }
 
-/// Convert ACP `mcpServers` into Anvil's internal MCP configs. Returns the
+/// Convert ACP `mcpServers` into Draupnir's internal MCP configs. Returns the
 /// offending server on the first unsupported entry so the caller can surface a
 /// protocol error.
 pub(crate) fn acp_mcp_servers_to_configs(
@@ -467,7 +467,7 @@ impl SessionMode {
 
 /// Per-session permission policy, mirroring the reference modes that
 /// `claude-agent-acp` exposes (default / acceptEdits / plan / bypassPermissions)
-/// plus Anvil's explicit model-classified approval mode.
+/// plus Draupnir's explicit model-classified approval mode.
 /// Surfaced to clients as a `SessionConfigOption` (its own dropdown), independent
 /// of `SessionMode`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -589,7 +589,7 @@ pub struct ConversationTurn {
     /// summarizer to reconstruct task state.
     pub current_plan: Option<crate::plan::UpdatePlanArgs>,
     /// Cumulative model-history checkpoint covering every turn through this
-    /// one. Raw turns remain authoritative for ACP replay and rewind; Anvil
+    /// one. Raw turns remain authoritative for ACP replay and rewind; Draupnir
     /// uses only the newest checkpoint when rebuilding model context.
     pub compaction_checkpoint: Option<CompactionCheckpoint>,
     /// Stable identifier matching the fragment id under which this
@@ -768,7 +768,7 @@ pub struct SessionManifest {
     /// Brokk ACP-specific: additional MCP server configuration for this
     /// session, supplied by ACP `session/new`.
     ///
-    /// These servers are additive to Anvil's canonical Bifrost setup from
+    /// These servers are additive to Draupnir's canonical Bifrost setup from
     /// install-level `/mcp` config or the built-in default.
     #[serde(
         default,
@@ -780,7 +780,7 @@ pub struct SessionManifest {
     /// under. Persisted so `session/load` and `session/resume` can reject a
     /// request that would move the session to a different cwd, even on a cold
     /// reload (where the in-memory cwd is otherwise seeded from the request).
-    /// Absent in manifests produced by the Java executor or by Anvil builds
+    /// Absent in manifests produced by the Java executor or by Draupnir builds
     /// predating cwd persistence.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "brokkCwd")]
     pub cwd: Option<String>,
@@ -895,12 +895,12 @@ pub struct Session {
     /// Set via `/idle-timeout <secs>`, cleared via `/idle-timeout default`.
     /// In-memory only -- does not survive a reload.
     pub idle_timeout_secs: Option<u64>,
-    /// Whether Anvil appends its host-generated recap after normal model turns.
+    /// Whether Draupnir appends its host-generated recap after normal model turns.
     /// This is a `/setup` / install-level preference seeded into live sessions,
     /// not an ACP `SessionConfigOption`, and is not stored in workspace zips.
     pub turn_recap_enabled: bool,
     /// Additional per-session MCP servers supplied by ACP `session/new`.
-    /// These are additive to Anvil's canonical Bifrost setup from the
+    /// These are additive to Draupnir's canonical Bifrost setup from the
     /// install-level `/mcp` configuration or the built-in default.
     pub mcp_servers: Option<Vec<McpServerConfig>>,
     /// Concatenated AGENTS.md / CLAUDE.md content discovered under `cwd`
@@ -1720,12 +1720,12 @@ fn read_history_from_zip(zip_path: &Path) -> Vec<ConversationTurn> {
                 .and_then(|sid| content_map.get(sid))
                 .and_then(|raw| serde_json::from_str::<StructuredOutputResult>(raw).ok());
             let current_plan = task
-                .get("anvilPlanContentId")
+                .get("draupnirPlanContentId")
                 .and_then(|v| v.as_str())
                 .and_then(|sid| content_map.get(sid))
                 .and_then(|raw| serde_json::from_str::<crate::plan::UpdatePlanArgs>(raw).ok());
             let compaction_checkpoint = task
-                .get("anvilCompactionContentId")
+                .get("draupnirCompactionContentId")
                 .and_then(|v| v.as_str())
                 .and_then(|sid| content_map.get(sid))
                 .and_then(|raw| serde_json::from_str::<CompactionCheckpoint>(raw).ok());
@@ -2584,8 +2584,8 @@ fn append_turn_to_zip(
             "taskDescription": null,
             "markdownContentId": response_content_id,
             "structuredOutputContentId": structured_output_content_id,
-            "anvilPlanContentId": plan_content_id,
-            "anvilCompactionContentId": compaction_content_id,
+            "draupnirPlanContentId": plan_content_id,
+            "draupnirCompactionContentId": compaction_content_id,
             "escapeHtml": false
         });
         if !replay_messages_json.is_empty()
@@ -2823,7 +2823,7 @@ fn rewrite_turn_summary_in_zip(
     })
 }
 
-/// Attach or replace Anvil's cumulative model-history checkpoint on a task
+/// Attach or replace Draupnir's cumulative model-history checkpoint on a task
 /// fragment. This is deliberately separate from Brokk's `summaryContentId`:
 /// the latter summarizes one task, while this checkpoint supersedes all model
 /// history through its anchor turn.
@@ -2853,7 +2853,7 @@ fn rewrite_compaction_checkpoint_in_zip(
         .ok_or_else(|| anyhow::anyhow!("no task fragment `{fragment_id}`"))?;
     let content_id = uuid::Uuid::new_v4().to_string();
     task.insert(
-        "anvilCompactionContentId".to_string(),
+        "draupnirCompactionContentId".to_string(),
         serde_json::Value::String(content_id.clone()),
     );
     let checkpoint_json = serde_json::to_string(checkpoint)?;
@@ -3169,13 +3169,13 @@ impl SessionStore {
             default_reasoning_effort: Arc::new(RwLock::new(None)),
             transient_setup_state: transient_setup.then(|| {
                 let mut state = crate::setup_state::SetupState::default();
-                // Internal test hook (no CLI flag, mirrors `ANVIL_TEST_OLLAMA_BASE_URL`):
+                // Internal test hook (no CLI flag, mirrors `DRAUPNIR_TEST_OLLAMA_BASE_URL`):
                 // integration smoke tests drive a deterministic mock provider that
                 // serves one canned body per request. A turn's trailing recap-summary
                 // LLM call would consume an extra body -- stealing a later turn's
                 // response in multi-turn fixtures -- so let the harness force recaps
                 // off. This never persists and leaves the transient contract intact.
-                if std::env::var("ANVIL_TEST_DISABLE_TURN_RECAP")
+                if std::env::var("DRAUPNIR_TEST_DISABLE_TURN_RECAP")
                     .ok()
                     .is_some_and(|v| !v.trim().is_empty())
                 {
@@ -5195,7 +5195,7 @@ impl SessionStore {
     ///
     /// Backs ACP `session/list` when the request omits `cwd`: ACP requires an
     /// unfiltered list to return the process's known sessions, and without a
-    /// cwd Anvil has no global on-disk index to scan, so it reports the
+    /// cwd Draupnir has no global on-disk index to scan, so it reports the
     /// resident working set. Each entry carries the in-memory cwd so the
     /// client receives an accurate `SessionInfo.cwd`.
     pub async fn resident_session_manifests(&self) -> Vec<(SessionManifest, PathBuf)> {
@@ -6495,7 +6495,7 @@ mod tests {
     }
 
     /// Existing sessions should pick up sandbox changes written by another
-    /// Anvil process on the next sandbox-mode read. That read happens on
+    /// Draupnir process on the next sandbox-mode read. That read happens on
     /// every tool execution path, so cross-process changes become effective
     /// without waiting for session reload.
     #[tokio::test(flavor = "current_thread")]
@@ -8177,9 +8177,9 @@ mod tests {
         assert_eq!(
             session_storage_root_with_override(
                 cwd,
-                Some(std::ffi::OsStr::new("/run/anvil-session")),
+                Some(std::ffi::OsStr::new("/run/draupnir-session")),
             ),
-            PathBuf::from("/run/anvil-session")
+            PathBuf::from("/run/draupnir-session")
         );
         assert_eq!(
             session_storage_root_with_override(cwd, Some(std::ffi::OsStr::new("../session-state")),),
@@ -8455,7 +8455,7 @@ done
     }
 
     #[test]
-    fn acp_stdio_mcp_servers_convert_to_anvil_configs() {
+    fn acp_stdio_mcp_servers_convert_to_draupnir_configs() {
         let configs =
             acp_mcp_servers_to_configs(vec![agent_client_protocol::schema::v1::McpServer::Stdio(
                 agent_client_protocol::schema::v1::McpServerStdio::new("local", "/usr/bin/mcp")
@@ -8486,7 +8486,7 @@ done
     }
 
     #[test]
-    fn acp_sse_mcp_server_converts_to_anvil_config() {
+    fn acp_sse_mcp_server_converts_to_draupnir_config() {
         let configs =
             acp_mcp_servers_to_configs(vec![agent_client_protocol::schema::v1::McpServer::Sse(
                 agent_client_protocol::schema::v1::McpServerSse::new(
@@ -8506,7 +8506,7 @@ done
     }
 
     #[test]
-    fn acp_http_mcp_server_converts_to_anvil_config() {
+    fn acp_http_mcp_server_converts_to_draupnir_config() {
         let configs =
             acp_mcp_servers_to_configs(vec![agent_client_protocol::schema::v1::McpServer::Http(
                 agent_client_protocol::schema::v1::McpServerHttp::new(
@@ -9477,7 +9477,7 @@ done
     /// A well-formed recap block whose three-line tail satisfies the
     /// model-history stripper, matching what `render_goal_recap` emits;
     /// `append_to_last_turn_response` debug-asserts strippability.
-    const STRIPPABLE_TEST_NOTICE: &str = "\n\n**Anvil Recap**\n\
+    const STRIPPABLE_TEST_NOTICE: &str = "\n\n**Draupnir Recap**\n\
          - *Stop: goal achieved after 2 goal turn(s)*.\n\
          - *Tools: none*.\n\
          - *Files changed: none*.\n";

@@ -1,12 +1,12 @@
 #![cfg(feature = "http-api")]
 
-//! Black-box conformance suite for the Anvil HTTP API (#320).
+//! Black-box conformance suite for the Draupnir HTTP API (#320).
 //!
-//! Starts the packaged `anvil serve` daemon against a scripted
-//! OpenAI-compatible mock provider (the `ANVIL_TEST_OLLAMA_BASE_URL` test
+//! Starts the packaged `draupnir serve` daemon against a scripted
+//! OpenAI-compatible mock provider (the `DRAUPNIR_TEST_OLLAMA_BASE_URL` test
 //! hook, same as `tests/acp_smoke.rs`) and validates every JSON response
 //! and every SSE event against the authoritative contract in
-//! `openapi/anvil.v1.yaml` and `openapi/anvil.v1.events.schema.json`.
+//! `openapi/draupnir.v1.yaml` and `openapi/draupnir.v1.events.schema.json`.
 //!
 //! The scripted provider drives real turns through the daemon, so every
 //! event type the contract defines is actually produced by the
@@ -39,15 +39,15 @@ fn contract_dir() -> PathBuf {
 }
 
 fn load_openapi() -> Value {
-    let raw = std::fs::read_to_string(contract_dir().join("anvil.v1.yaml"))
-        .expect("read openapi/anvil.v1.yaml");
+    let raw = std::fs::read_to_string(contract_dir().join("draupnir.v1.yaml"))
+        .expect("read openapi/draupnir.v1.yaml");
     let yaml: serde_yaml::Value = serde_yaml::from_str(&raw).expect("parse OpenAPI YAML");
     serde_json::to_value(yaml).expect("OpenAPI YAML converts to JSON")
 }
 
 fn load_event_schema() -> Value {
-    let raw = std::fs::read_to_string(contract_dir().join("anvil.v1.events.schema.json"))
-        .expect("read openapi/anvil.v1.events.schema.json");
+    let raw = std::fs::read_to_string(contract_dir().join("draupnir.v1.events.schema.json"))
+        .expect("read openapi/draupnir.v1.events.schema.json");
     serde_json::from_str(&raw).expect("parse event schema JSON")
 }
 
@@ -309,10 +309,10 @@ impl Drop for ServeDaemon {
 }
 
 fn spawn_serve(home: &std::path::Path, provider_url: &str) -> ServeDaemon {
-    let bin = std::env::var_os("CARGO_BIN_EXE_anvil")
+    let bin = std::env::var_os("CARGO_BIN_EXE_draupnir")
         .map(PathBuf::from)
-        .or_else(|| option_env!("CARGO_BIN_EXE_anvil").map(PathBuf::from))
-        .unwrap_or_else(|| PathBuf::from("target/debug/anvil"));
+        .or_else(|| option_env!("CARGO_BIN_EXE_draupnir").map(PathBuf::from))
+        .unwrap_or_else(|| PathBuf::from("target/debug/draupnir"));
     let mut child = Command::new(bin)
         .args([
             "--no-wasm-sandbox",
@@ -326,10 +326,10 @@ fn spawn_serve(home: &std::path::Path, provider_url: &str) -> ServeDaemon {
         .env("HOME", home)
         .env("CODEX_HOME", home.join(".codex"))
         .env("BROKK_CONFIG_HOME", home.join("config"))
-        .env("ANVIL_TEST_OLLAMA_BASE_URL", provider_url)
+        .env("DRAUPNIR_TEST_OLLAMA_BASE_URL", provider_url)
         // Recaps would issue an extra summarizer LLM call after
         // file-changing turns and desync the scripted provider.
-        .env("ANVIL_TEST_DISABLE_TURN_RECAP", "1")
+        .env("DRAUPNIR_TEST_DISABLE_TURN_RECAP", "1")
         .env_remove("OPENAI_API_KEY")
         .env_remove("OPENROUTER_API_KEY")
         .env_remove("BEDROCK_API_KEY")
@@ -337,7 +337,7 @@ fn spawn_serve(home: &std::path::Path, provider_url: &str) -> ServeDaemon {
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .expect("spawn anvil serve");
+        .expect("spawn draupnir serve");
 
     let stdout = child.stdout.take().expect("child stdout");
     let (sender, receiver) = std::sync::mpsc::channel();

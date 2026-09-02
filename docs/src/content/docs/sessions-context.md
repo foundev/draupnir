@@ -3,13 +3,13 @@ title: Sessions and Context
 description: Understand durable history, client-owned controls, compaction, and lifecycle operations.
 ---
 
-Anvil persists ACP sessions so a client can list, load, resume, fork, close, or delete work according to the protocol surface it implements.
+Draupnir persists ACP sessions so a client can list, load, resume, fork, close, or delete work according to the protocol surface it implements.
 
 ## Durable State
 
-Persisted sessions retain raw conversation turns, tool exchanges, task metadata, and Anvil compaction checkpoints. The exact client-visible presentation and lifecycle controls belong to the ACP client.
+Persisted sessions retain raw conversation turns, tool exchanges, task metadata, and Draupnir compaction checkpoints. The exact client-visible presentation and lifecycle controls belong to the ACP client.
 
-Model, behavior, reasoning effort, service tier, and permission selections are client-owned live controls. They must not be treated as install-wide Anvil preferences; clients resubmit desired values for new or restored sessions. `/setup timeout` is a separate in-memory session override and is not an ACP configuration selector.
+Model, behavior, reasoning effort, service tier, and permission selections are client-owned live controls. They must not be treated as install-wide Draupnir preferences; clients resubmit desired values for new or restored sessions. `/setup timeout` is a separate in-memory session override and is not an ACP configuration selector.
 
 ## Context Reporting
 

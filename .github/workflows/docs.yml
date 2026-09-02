@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: anvil-docs-pages
+  group: draupnir-docs-pages
   cancel-in-progress: false
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
         run: npm run build
         working-directory: docs
         env:
-          PUBLIC_DOCS_SITE: https://anvil.brokk.ai
+          PUBLIC_DOCS_SITE: https://draupnir.brokk.ai
           PUBLIC_DOCS_BASE: /
 
       - name: Prepare Pages artifact

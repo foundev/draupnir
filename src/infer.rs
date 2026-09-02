@@ -1,4 +1,4 @@
-//! One-shot, tool-free structured inference over Anvil's hosted backends.
+//! One-shot, tool-free structured inference over Draupnir's hosted backends.
 
 use std::io::{Read, Write};
 use std::time::Duration;

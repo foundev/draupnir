@@ -1,6 +1,6 @@
 #![cfg(feature = "http-api")]
 
-//! Daemon-level smoke test for `anvil serve` (#317): spawns the real
+//! Daemon-level smoke test for `draupnir serve` (#317): spawns the real
 //! binary, waits for the machine-readable `serve.ready` line on stdout,
 //! and exercises the REST session lifecycle over a real localhost
 //! listener. Handler-level coverage (validation, error envelopes, config
@@ -27,11 +27,11 @@ impl Drop for ServeDaemon {
     }
 }
 
-fn anvil_bin() -> PathBuf {
-    std::env::var_os("CARGO_BIN_EXE_anvil")
+fn draupnir_bin() -> PathBuf {
+    std::env::var_os("CARGO_BIN_EXE_draupnir")
         .map(PathBuf::from)
-        .or_else(|| option_env!("CARGO_BIN_EXE_anvil").map(PathBuf::from))
-        .unwrap_or_else(|| PathBuf::from("target/debug/anvil"))
+        .or_else(|| option_env!("CARGO_BIN_EXE_draupnir").map(PathBuf::from))
+        .unwrap_or_else(|| PathBuf::from("target/debug/draupnir"))
 }
 
 fn spawn_serve(home: &std::path::Path) -> ServeDaemon {
@@ -49,7 +49,7 @@ fn spawn_serve_with(home: &std::path::Path, extra_args: &[&str]) -> (ServeDaemon
         "0",
     ];
     args.extend_from_slice(extra_args);
-    let mut child = Command::new(anvil_bin())
+    let mut child = Command::new(draupnir_bin())
         .args(&args)
         .env("HOME", home)
         .env("CODEX_HOME", home.join(".codex"))
@@ -61,7 +61,7 @@ fn spawn_serve_with(home: &std::path::Path, extra_args: &[&str]) -> (ServeDaemon
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()
-        .expect("spawn anvil serve");
+        .expect("spawn draupnir serve");
 
     // The daemon promises exactly one machine-readable stdout line:
     // {"type":"serve.ready","url":...}. Startup includes provider discovery
@@ -275,7 +275,7 @@ fn serve_daemon_lifecycle_over_localhost() {
 #[test]
 fn serve_refuses_non_loopback_binding_without_auth() {
     let home = tempfile::tempdir().expect("temp home");
-    let status = Command::new(anvil_bin())
+    let status = Command::new(draupnir_bin())
         .args([
             "--no-wasm-sandbox",
             "--transient-setup",
@@ -291,7 +291,7 @@ fn serve_refuses_non_loopback_binding_without_auth() {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
-        .expect("run anvil serve");
+        .expect("run draupnir serve");
     assert!(
         !status.success(),
         "non-loopback binding without a token must fail startup"

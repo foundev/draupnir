@@ -4,10 +4,10 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use common::{AnvilRun, default_agent_command, run_gh, run_prompt};
+use common::{DraupnirRun, default_agent_command, run_gh, run_prompt};
 
 #[derive(Parser, Debug)]
-#[command(about = "Analyze a GitHub issue with Anvil over ACP")]
+#[command(about = "Analyze a GitHub issue with Draupnir over ACP")]
 struct Args {
     /// GitHub repository in owner/name form.
     #[arg(long)]
@@ -24,15 +24,15 @@ struct Args {
     #[arg(long, conflicts_with = "issue_file")]
     issue_text: Option<String>,
 
-    /// Workspace path Anvil should inspect.
+    /// Workspace path Draupnir should inspect.
     #[arg(long, default_value = ".")]
     cwd: PathBuf,
 
-    /// ACP agent command. Defaults to ANVIL_AGENT, target/debug/anvil, or cargo run.
+    /// ACP agent command. Defaults to DRAUPNIR_AGENT, target/debug/draupnir, or cargo run.
     #[arg(long)]
     agent: Option<String>,
 
-    /// Post Anvil's answer back to the GitHub issue. Requires an issue number.
+    /// Post Draupnir's answer back to the GitHub issue. Requires an issue number.
     #[arg(long)]
     post_comment: bool,
 }
@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
         repo = args.repo,
     );
 
-    let config = AnvilRun::read_only(
+    let config = DraupnirRun::read_only(
         args.agent.unwrap_or_else(default_agent_command),
         args.cwd.canonicalize()?,
     );

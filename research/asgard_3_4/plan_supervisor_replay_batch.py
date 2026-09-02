@@ -65,7 +65,7 @@ def _read_archive(path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     try:
         with zipfile.ZipFile(path) as archive:
             result = json.loads(archive.read("result.json"))
-            raw = archive.read("anvil-trace.jsonl").decode("utf-8", "replace")
+            raw = archive.read("draupnir-trace.jsonl").decode("utf-8", "replace")
     except (OSError, KeyError, json.JSONDecodeError, zipfile.BadZipFile) as error:
         raise ValueError(f"cannot read {path}: {error}") from error
     if not isinstance(result, dict):
@@ -77,7 +77,7 @@ def _read_archive(path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         try:
             row = json.loads(line)
         except json.JSONDecodeError as error:
-            raise ValueError(f"{path}:anvil-trace.jsonl:{number}: {error.msg}") from error
+            raise ValueError(f"{path}:draupnir-trace.jsonl:{number}: {error.msg}") from error
         if isinstance(row, dict):
             rows.append(row)
     return result, rows

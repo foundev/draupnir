@@ -1,5 +1,5 @@
 name: Agent or runtime bug
-description: Report incorrect, inconsistent, unsafe, or unexpectedly slow behavior during an Anvil ACP session.
+description: Report incorrect, inconsistent, unsafe, or unexpectedly slow behavior during a Draupnir ACP session.
 labels:
   - bug
 body:
@@ -12,7 +12,7 @@ body:
     id: affected-surface
     attributes:
       label: Affected surface
-      description: Which Anvil surface is closest to the problem?
+      description: Which Draupnir surface is closest to the problem?
       options:
         - ACP session lifecycle or streaming
         - Model or provider routing
@@ -28,7 +28,7 @@ body:
   - type: textarea
     id: observed-behavior
     attributes:
-      label: What did Anvil do?
+      label: What did Draupnir do?
       description: Describe the incorrect, inconsistent, unsafe, or unexpectedly slow behavior you observed.
     validations:
       required: true
@@ -58,9 +58,9 @@ body:
     id: session-environment
     attributes:
       label: Session and environment
-      description: Include the Anvil version or commit, ACP client, provider and model, behavior and permission modes, operating system, and relevant configuration.
+      description: Include the Draupnir version or commit, ACP client, provider and model, behavior and permission modes, operating system, and relevant configuration.
       placeholder: |
-        Anvil version or commit:
+        Draupnir version or commit:
         ACP client:
         Provider and model:
         Behavior and permission modes:

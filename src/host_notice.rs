@@ -11,7 +11,7 @@ use crate::session::{ToolExchange, ToolExchangeStatus};
 use crate::tool_loop::LoopStop;
 
 pub(crate) const STOP_NOTICE_SENTINEL: &str = "\n⏹ ";
-pub(crate) const TURN_RECAP_NOTICE_SENTINEL: &str = "\n\n**Anvil Recap**\n";
+pub(crate) const TURN_RECAP_NOTICE_SENTINEL: &str = "\n\n**Draupnir Recap**\n";
 
 /// Upper bound on the rendered work-summary, as a safety valve against a
 /// model that ignores the "a few bullets" instruction. Truncated on a char
@@ -207,11 +207,13 @@ fn render_changed_files(stats: &ToolCallStats) -> String {
 }
 
 /// Neutralize the recap header in the model-written summary, then bound its
-/// length. Stripping anchors on the `**Anvil Recap**` sentinel via `rfind`,
+/// length. Stripping anchors on the `**Draupnir Recap**` sentinel via `rfind`,
 /// so a summary that echoed that header could otherwise create a second
 /// match and confuse the stripper.
 fn sanitize_recap_summary(summary: &str) -> String {
-    let mut cleaned = summary.trim().replace("**Anvil Recap**", "Anvil Recap");
+    let mut cleaned = summary
+        .trim()
+        .replace("**Draupnir Recap**", "Draupnir Recap");
     if cleaned.chars().count() > MAX_RECAP_SUMMARY_CHARS {
         let truncated: String = cleaned.chars().take(MAX_RECAP_SUMMARY_CHARS).collect();
         cleaned = format!("{}…", truncated.trim_end());
@@ -281,7 +283,7 @@ fn strip_trailing_turn_recap(text: &str) -> Option<&str> {
     // The recap may carry a variable-length work summary above its three fixed
     // Stop / Tools / Files lines, which are always last. Validating the final
     // three lines lets the whole block strip while leaving model-authored text
-    // that merely contains "**Anvil Recap**" untouched. If a later notice were
+    // that merely contains "**Draupnir Recap**" untouched. If a later notice were
     // appended after the recap, these would not be the tail and the strip loop
     // in `model_visible_assistant_text` peels that off first.
     let lines: Vec<&str> = body.lines().collect();
@@ -656,7 +658,7 @@ mod tests {
             "just a normal answer"
         );
 
-        let model_authored = "answer\n\n**Anvil Recap**\nthis is model text";
+        let model_authored = "answer\n\n**Draupnir Recap**\nthis is model text";
         assert_eq!(model_visible_assistant_text(model_authored), model_authored);
 
         let embedded_marker =

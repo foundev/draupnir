@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 const docsRoot = fileURLToPath(new URL('..', import.meta.url));
 const fixture = readFileSync(`${docsRoot}/fixtures/ten-minute-evaluation/src/lib.rs`, 'utf8');
-const guide = readFileSync(`${docsRoot}/src/content/docs/evaluate-anvil.md`, 'utf8');
+const guide = readFileSync(`${docsRoot}/src/content/docs/evaluate-draupnir.md`, 'utf8');
 
 const expectedFixture = `pub fn greeting(name: &str) -> String {
     format!("Hello, {name}!")

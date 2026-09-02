@@ -3,7 +3,7 @@
   "source_tasks_root": "/tmp/asgard-3-4-tasks.WXle24/full",
   "output_root": "/tmp/asgard-3-4-live-v2",
   "runner_root": "/home/jonathan/Projects/brokkbench",
-  "anvil_bin": "/mnt/optane/anvil-asgard-stateful-probe/target/x86_64-unknown-linux-musl/release/anvil",
+  "draupnir_bin": "/mnt/optane/draupnir-asgard-stateful-probe/target/x86_64-unknown-linux-musl/release/draupnir",
   "candidate_model": "deepseek::deepseek-v4-flash",
   "supervisor_model": "deepseek::deepseek-v4-pro",
   "candidate_count": 3,

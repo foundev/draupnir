@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Score blinded Asgard shallow-probe survivor-recall studies.
 
-The input is either an Anvil result archive containing ``anvil-trace.jsonl`` or
+The input is either a Draupnir result archive containing ``draupnir-trace.jsonl`` or
 an uncompressed JSONL trace.  Only complete, isolated, blinded studies count
 toward the default top-2 recall gate.  Partial studies remain visible in the
 report so that a sampled killed lane cannot accidentally be presented as full
@@ -58,10 +58,10 @@ def trace_rows(path: Path) -> list[dict[str, Any]]:
     if path.suffix == ".zip":
         try:
             with zipfile.ZipFile(path) as archive:
-                raw = archive.read("anvil-trace.jsonl").decode("utf-8", "replace")
+                raw = archive.read("draupnir-trace.jsonl").decode("utf-8", "replace")
         except KeyError as error:
-            raise ValueError(f"{path} has no anvil-trace.jsonl") from error
-        return list(_parse_rows(raw, f"{path}:anvil-trace.jsonl"))
+            raise ValueError(f"{path} has no draupnir-trace.jsonl") from error
+        return list(_parse_rows(raw, f"{path}:draupnir-trace.jsonl"))
     return list(_parse_rows(path.read_text(encoding="utf-8"), str(path)))
 
 

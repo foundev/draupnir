@@ -505,7 +505,7 @@ pub(crate) struct TurnFailure {
 /// reason from an empty response string. [`TurnFailure`] (wrapped in `Failed`)
 /// is the LLM/setup-error case; the other variants are clean terminations that
 /// previously left no trace -- the loop just returned an empty `full_response`,
-/// which is the "anvil exits without saying why" symptom. Top-level callers map
+/// which is the "draupnir exits without saying why" symptom. Top-level callers map
 /// this to the ACP `StopReason`, and the loop itself streams a closing line for
 /// the otherwise-silent terminations (turn-limit exhaustion, empty completion).
 #[derive(Debug, Clone)]
@@ -2105,7 +2105,7 @@ pub(crate) async fn run(
         // Self-contained trace contract: record the exact message context
         // (system prompt, user prompt, injected prefix) and advertised tools
         // this window starts from, so trajectories can be exported to
-        // training rows without consulting anvil internals.
+        // training rows without consulting draupnir internals.
         p2t::append_window_start_trace(&config.step_trace_out, &messages, &tools);
         if let Some(snapshot_dir) = config
             .snapshot_dir
@@ -8988,7 +8988,7 @@ mod tests {
         }
 
         let cwd = tempfile::tempdir().expect("temp cwd");
-        let trace = cwd.path().join("anvil-trace.jsonl");
+        let trace = cwd.path().join("draupnir-trace.jsonl");
         let registry = ToolRegistry::new(
             cwd.path().to_path_buf(),
             Vec::new(),
@@ -9078,7 +9078,7 @@ mod tests {
         }
 
         let cwd = tempfile::tempdir().expect("temp cwd");
-        let trace = cwd.path().join("anvil-trace.jsonl");
+        let trace = cwd.path().join("draupnir-trace.jsonl");
         let registry = ToolRegistry::new(
             cwd.path().to_path_buf(),
             Vec::new(),

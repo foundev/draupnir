@@ -152,7 +152,7 @@ fn session_load_replays_tool_updates_in_order() {
         tool_call_sse_body_for("call_read", "read_file", r#"{"file_path":"README.md"}"#),
         text_sse_body("README contains a smoke heading."),
     ]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -253,7 +253,7 @@ fn session_load_replays_tool_updates_in_order() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during session/load replay smoke test; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during session/load replay smoke test; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -302,7 +302,7 @@ fn additional_directories_scope_builtin_file_tools() {
         tool_call_sse_body_for("call_outside", "read_file", &outside_args),
         text_sse_body("Outside read was rejected."),
     ]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -390,7 +390,7 @@ fn additional_directories_scope_builtin_file_tools() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during additionalDirectories tool checks; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during additionalDirectories tool checks; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -420,7 +420,7 @@ fn relative_cwd_lifecycle_requests_return_invalid_params() {
     install_fake_managed_bifrost(&config_home, temp.path(), &bifrost_log);
 
     let trace_path = temp.path().join(format!("{}.trace.jsonl", case.name));
-    let mut child = spawn_anvil(&home, &config_home, &trace_path, None, 1);
+    let mut child = spawn_draupnir(&home, &config_home, &trace_path, None, 1);
     let (stdout_rx, stdout_join) = spawn_line_reader(child.stdout.take().expect("stdout"));
     let (stderr_rx, stderr_join) = spawn_line_reader(child.stderr.take().expect("stderr"));
     let mut stdin = child.stdin.take().expect("stdin");
@@ -503,7 +503,7 @@ fn relative_cwd_lifecycle_requests_return_invalid_params() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited after relative cwd rejection; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited after relative cwd rejection; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -553,7 +553,7 @@ fn lifecycle_mcp_servers_applied_and_unsupported_rejected() {
         text_sse_body("Looked around."),
         text_sse_body("Looked again."),
     ]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -586,7 +586,7 @@ fn lifecycle_mcp_servers_applied_and_unsupported_rejected() {
         "{}: should advertise mcpCapabilities.sse=true: {initialize}",
         case.name
     );
-    // The ACP registry requires at least one advertised auth method; Anvil
+    // The ACP registry requires at least one advertised auth method; Draupnir
     // declares an explicit no-auth method instead of an empty list.
     assert_eq!(
         initialize["result"]["authMethods"][0]["id"], "none",
@@ -684,7 +684,7 @@ fn lifecycle_mcp_servers_applied_and_unsupported_rejected() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during MCP lifecycle checks; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during MCP lifecycle checks; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -719,7 +719,7 @@ fn session_list_without_cwd_and_cursor_semantics() {
     // One plain text response: the prompt names the session (auto-rename) and
     // completes without tool calls.
     let provider = start_openai_smoke_server(vec![text_sse_body("Looked around.")]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -845,7 +845,7 @@ fn session_list_without_cwd_and_cursor_semantics() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during session/list checks; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during session/list checks; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -883,7 +883,7 @@ fn lifecycle_unknown_cwd_and_additional_dirs_return_invalid_params() {
     install_fake_managed_bifrost(&config_home, temp.path(), &bifrost_log);
 
     let trace_path = temp.path().join(format!("{}.trace.jsonl", case.name));
-    let mut child = spawn_anvil(&home, &config_home, &trace_path, None, 1);
+    let mut child = spawn_draupnir(&home, &config_home, &trace_path, None, 1);
     let (stdout_rx, stdout_join) = spawn_line_reader(child.stdout.take().expect("stdout"));
     let (stderr_rx, stderr_join) = spawn_line_reader(child.stderr.take().expect("stderr"));
     let mut stdin = child.stdin.take().expect("stdin");
@@ -1151,7 +1151,7 @@ fn lifecycle_unknown_cwd_and_additional_dirs_return_invalid_params() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during lifecycle validation; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during lifecycle validation; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -1189,7 +1189,7 @@ fn session_fork_creates_independent_session() {
         text_sse_body("Source summary."),
         text_sse_body("Fork summary."),
     ]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -1307,7 +1307,7 @@ fn session_fork_creates_independent_session() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during session/fork checks; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during session/fork checks; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -1338,7 +1338,7 @@ fn session_delete_removes_session_and_is_idempotent() {
 
     let trace_path = temp.path().join(format!("{}.trace.jsonl", case.name));
     let provider = start_openai_smoke_server(vec![text_sse_body("Summary.")]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -1439,7 +1439,7 @@ fn session_delete_removes_session_and_is_idempotent() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during session/delete checks; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during session/delete checks; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -1469,7 +1469,7 @@ fn mode_and_config_option_surfaces_stay_in_sync() {
     install_fake_managed_bifrost(&config_home, temp.path(), &bifrost_log);
 
     let trace_path = temp.path().join(format!("{}.trace.jsonl", case.name));
-    let mut child = spawn_anvil(&home, &config_home, &trace_path, None, 1);
+    let mut child = spawn_draupnir(&home, &config_home, &trace_path, None, 1);
     let (stdout_rx, stdout_join) = spawn_line_reader(child.stdout.take().expect("stdout"));
     let (stderr_rx, stderr_join) = spawn_line_reader(child.stderr.take().expect("stderr"));
     let mut stdin = child.stdin.take().expect("stdin");
@@ -1604,7 +1604,7 @@ fn mode_and_config_option_surfaces_stay_in_sync() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during mode/config sync checks; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during mode/config sync checks; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -1634,7 +1634,7 @@ fn invalid_prompt_requests_return_invalid_params() {
     install_fake_managed_bifrost(&config_home, temp.path(), &bifrost_log);
 
     let trace_path = temp.path().join(format!("{}.trace.jsonl", case.name));
-    let mut child = spawn_anvil(&home, &config_home, &trace_path, None, 1);
+    let mut child = spawn_draupnir(&home, &config_home, &trace_path, None, 1);
     let (stdout_rx, stdout_join) = spawn_line_reader(child.stdout.take().expect("stdout"));
     let (stderr_rx, stderr_join) = spawn_line_reader(child.stderr.take().expect("stderr"));
     let mut stdin = child.stdin.take().expect("stdin");
@@ -1690,7 +1690,7 @@ fn invalid_prompt_requests_return_invalid_params() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited after invalid prompt rejection; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited after invalid prompt rejection; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -1739,7 +1739,7 @@ fn llm_request_cancelled_mid_send_is_not_reported_as_error() {
 
     let trace_path = temp.path().join(format!("{}.trace.jsonl", case.name));
     let provider = start_hanging_smoke_server();
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -1772,7 +1772,7 @@ fn llm_request_cancelled_mid_send_is_not_reported_as_error() {
     let _ = client.take_updates();
 
     // Fire the prompt without blocking; the provider hangs on the resulting
-    // chat-completion request, pinning anvil in `send().await`.
+    // chat-completion request, pinning draupnir in `send().await`.
     let prompt_id = client.send_request_no_wait(
         "session/prompt",
         json!({
@@ -1782,7 +1782,7 @@ fn llm_request_cancelled_mid_send_is_not_reported_as_error() {
     );
 
     // Cancel only once the provider has actually received the request, so the
-    // cancel is guaranteed to land while anvil is blocked sending it.
+    // cancel is guaranteed to land while draupnir is blocked sending it.
     let deadline = Instant::now() + Duration::from_secs(20);
     while provider.request_count() == 0 {
         assert!(
@@ -1858,7 +1858,7 @@ fn max_turns_exhaustion_is_reported_in_transcript_and_stop_reason() {
     // Exactly one canned body == one LLM call: --max-turns 1 makes turn 0 the
     // only request. If loop semantics ever insert a second LLM call (e.g. a
     // retry/nudge), the mock runs out of bodies and the turn hangs until the
-    // 1s idle timeout (set by spawn_anvil), surfacing here as a timeout-`Failed`
+    // 1s idle timeout (set by spawn_draupnir), surfacing here as a timeout-`Failed`
     // exit rather than the asserted max_turn_requests -- a signal to revisit
     // this fixture, not a flake to paper over.
     let provider = start_openai_smoke_server(vec![tool_call_sse_body_for(
@@ -1866,7 +1866,7 @@ fn max_turns_exhaustion_is_reported_in_transcript_and_stop_reason() {
         "read_file",
         r#"{"file_path":"README.md"}"#,
     )]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -1948,7 +1948,7 @@ fn max_turns_exhaustion_is_reported_in_transcript_and_stop_reason() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during max-turns smoke test; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during max-turns smoke test; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -1987,7 +1987,7 @@ fn empty_completion_is_reported_in_transcript_and_survives_reload() {
     // across all four attempts for the `Completed { had_text: false }` notice to
     // surface. The retries happen inside a single turn, so `max_turns` stays 2.
     let provider = start_openai_smoke_server(vec![text_sse_body(""); 4]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -2059,7 +2059,7 @@ fn empty_completion_is_reported_in_transcript_and_survives_reload() {
 
     assert!(
         !client.exited(),
-        "{}: anvil exited during empty-completion smoke test; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during empty-completion smoke test; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -2089,7 +2089,7 @@ fn run_smoke_case(case: &SmokeCase) {
         tool_call_sse_body(),
         text_sse_body(r#"{"answer":"Blocked write observed."}"#),
     ]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -2174,7 +2174,7 @@ fn run_smoke_case(case: &SmokeCase) {
         ]
     });
     prompt_params["_meta"] = json!({
-        "anvil": {
+        "draupnir": {
             "structuredOutput": {
                 "schemaName": "slopcop_smoke",
                 "schema": {
@@ -2194,7 +2194,7 @@ fn run_smoke_case(case: &SmokeCase) {
     assert_response_ok(case, "session/prompt", &prompt, &client);
     assert!(
         !client.exited(),
-        "{}: anvil exited after prompt; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited after prompt; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -2349,7 +2349,7 @@ fn run_p2t_prefix_tail_case(case: SmokeCase, prefix_steps: Vec<Value>) {
 
     let trace_path = temp.path().join(format!("{}.trace.jsonl", case.name));
     let provider = start_openai_smoke_server(vec![text_sse_body("Continuing after prefix.")]);
-    let mut child = spawn_anvil_with_p2t(
+    let mut child = spawn_draupnir_with_p2t(
         &home,
         &config_home,
         &trace_path,
@@ -2423,7 +2423,7 @@ fn run_p2t_prefix_tail_case(case: SmokeCase, prefix_steps: Vec<Value>) {
     );
     assert!(
         !client.exited(),
-        "{}: anvil exited during P2T prefix-tail smoke test; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during P2T prefix-tail smoke test; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -2451,7 +2451,7 @@ fn run_direct_prompt_case(case: &SmokeCase) -> (OpenAiSmokeServer, usize) {
     let trace_path = temp.path().join(format!("{}.trace.jsonl", case.name));
     let provider =
         start_openai_smoke_server(vec![text_sse_body("A trait defines shared behavior.")]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -2507,7 +2507,7 @@ fn run_direct_prompt_case(case: &SmokeCase) -> (OpenAiSmokeServer, usize) {
     let permission_requests = client.permission_request_count;
     assert!(
         !client.exited(),
-        "{}: anvil exited during direct prompt smoke test; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited during direct prompt smoke test; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -2545,7 +2545,7 @@ fn run_auto_classifier_denial_case(case: &SmokeCase) {
         ),
         text_sse_body("Permission prompt cancellation was handled."),
     ]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -2610,7 +2610,7 @@ fn run_auto_classifier_denial_case(case: &SmokeCase) {
     assert_response_ok(case, "session/prompt", &prompt, &client);
     assert!(
         !client.exited(),
-        "{}: anvil exited after auto-classifier denial; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited after auto-classifier denial; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -2697,7 +2697,7 @@ fn run_auto_classifier_escalation_case(case: &SmokeCase, escalation_case: AutoEs
         classifier_body,
         text_sse_body("Escalation decision was handled."),
     ]);
-    let mut child = spawn_anvil(
+    let mut child = spawn_draupnir(
         &home,
         &config_home,
         &trace_path,
@@ -2798,7 +2798,7 @@ fn run_auto_classifier_escalation_case(case: &SmokeCase, escalation_case: AutoEs
     assert_response_ok(case, "session/prompt", &prompt, &client);
     assert!(
         !client.exited(),
-        "{}: anvil exited after auto-classifier escalation case; stderr:\n{}\ntrace:\n{}",
+        "{}: draupnir exited after auto-classifier escalation case; stderr:\n{}\ntrace:\n{}",
         case.name,
         client.stderr_text(),
         client.trace_text()
@@ -2909,7 +2909,7 @@ fn outside_sandbox_marker_dir_for_smoke(case_name: &str) -> Option<PathBuf> {
         .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '-' })
         .collect();
     Some(home.join(format!(
-        ".anvil-acp-smoke-{safe_case}-{}",
+        ".draupnir-acp-smoke-{safe_case}-{}",
         uuid::Uuid::new_v4()
     )))
 }
@@ -2946,14 +2946,14 @@ fn os_shell_sandbox_available_for_smoke() -> bool {
     }
 }
 
-fn spawn_anvil(
+fn spawn_draupnir(
     home: &Path,
     config_home: &Path,
     trace_path: &Path,
     ollama_base_url: Option<&str>,
     max_turns: usize,
 ) -> Child {
-    spawn_anvil_inner(
+    spawn_draupnir_inner(
         home,
         config_home,
         trace_path,
@@ -2963,7 +2963,7 @@ fn spawn_anvil(
     )
 }
 
-fn spawn_anvil_with_p2t(
+fn spawn_draupnir_with_p2t(
     home: &Path,
     config_home: &Path,
     trace_path: &Path,
@@ -2971,7 +2971,7 @@ fn spawn_anvil_with_p2t(
     max_turns: usize,
     p2t_config: &Path,
 ) -> Child {
-    spawn_anvil_inner(
+    spawn_draupnir_inner(
         home,
         config_home,
         trace_path,
@@ -2981,7 +2981,7 @@ fn spawn_anvil_with_p2t(
     )
 }
 
-fn spawn_anvil_inner(
+fn spawn_draupnir_inner(
     home: &Path,
     config_home: &Path,
     trace_path: &Path,
@@ -2989,10 +2989,10 @@ fn spawn_anvil_inner(
     max_turns: usize,
     p2t_config: Option<&Path>,
 ) -> Child {
-    let bin = std::env::var_os("CARGO_BIN_EXE_anvil")
+    let bin = std::env::var_os("CARGO_BIN_EXE_draupnir")
         .map(PathBuf::from)
-        .or_else(|| option_env!("CARGO_BIN_EXE_anvil").map(PathBuf::from))
-        .unwrap_or_else(|| PathBuf::from("target/debug/anvil"));
+        .or_else(|| option_env!("CARGO_BIN_EXE_draupnir").map(PathBuf::from))
+        .unwrap_or_else(|| PathBuf::from("target/debug/draupnir"));
     let max_turns = max_turns.to_string();
     let mut command = Command::new(bin);
     command
@@ -3009,12 +3009,12 @@ fn spawn_anvil_inner(
         .env("HOME", home)
         .env("CODEX_HOME", home.join(".codex"))
         .env("BROKK_CONFIG_HOME", config_home)
-        .env("ANVIL_TRACE_JSONL", trace_path)
+        .env("DRAUPNIR_TRACE_JSONL", trace_path)
         // Recaps default on, but each enabled turn fires a recap-summary LLM
         // call that would consume a canned body from the deterministic mock
         // provider and desync multi-turn fixtures. No smoke test asserts recap
         // content, so force them off; the recap path has its own unit coverage.
-        .env("ANVIL_TEST_DISABLE_TURN_RECAP", "1")
+        .env("DRAUPNIR_TEST_DISABLE_TURN_RECAP", "1")
         .env_remove("OPENAI_API_KEY")
         .env_remove("OPENROUTER_API_KEY")
         .env_remove("BEDROCK_API_KEY")
@@ -3022,14 +3022,14 @@ fn spawn_anvil_inner(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     if let Some(url) = ollama_base_url {
-        command.env("ANVIL_TEST_OLLAMA_BASE_URL", url);
+        command.env("DRAUPNIR_TEST_OLLAMA_BASE_URL", url);
     }
     if let Some(path) = p2t_config {
         command
             .env("BRK_PATCHES_TO_TRACES", "1")
             .env("BRK_P2T_CONFIG", path);
     }
-    command.spawn().expect("spawn anvil")
+    command.spawn().expect("spawn draupnir")
 }
 
 fn read_jsonl_values(path: &Path) -> Vec<Value> {
@@ -3394,8 +3394,8 @@ fn assert_structured_output_success(
 
 fn find_structured_output(value: &Value) -> Option<&Value> {
     if let Some(found) = value
-        .get("anvil")
-        .and_then(|anvil| anvil.get("structuredOutput"))
+        .get("draupnir")
+        .and_then(|draupnir| draupnir.get("structuredOutput"))
     {
         return Some(found);
     }
@@ -3538,7 +3538,7 @@ impl<'a> JsonRpcClient<'a> {
             self.drain_stderr();
             if let Some(status) = self.child.try_wait().expect("poll child") {
                 panic!(
-                    "{method}: anvil exited before response id {id}: {status}\nstderr:\n{}\ntrace:\n{}",
+                    "{method}: draupnir exited before response id {id}: {status}\nstderr:\n{}\ntrace:\n{}",
                     self.stderr_text(),
                     self.trace_text()
                 );
@@ -3556,7 +3556,7 @@ impl<'a> JsonRpcClient<'a> {
             match self.stdout.recv_timeout(remaining) {
                 Ok(line) => {
                     let value: Value = serde_json::from_str(&line)
-                        .unwrap_or_else(|e| panic!("invalid json line from anvil: {e}: {line}"));
+                        .unwrap_or_else(|e| panic!("invalid json line from draupnir: {e}: {line}"));
                     if value.get("id").and_then(Value::as_u64) == Some(id) {
                         return value;
                     }

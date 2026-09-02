@@ -46,9 +46,12 @@ impl GrokClient {
             .header("X-XAI-Token-Auth", "xai-grok-cli")
             .header("x-authenticateresponse", "authenticate-response")
             .header("x-grok-client-version", &self.client_version)
-            .header("x-grok-client-identifier", "anvil")
+            .header("x-grok-client-identifier", "draupnir")
             .header("x-grok-client-mode", "headless")
-            .header("User-Agent", format!("anvil/{}", env!("CARGO_PKG_VERSION")));
+            .header(
+                "User-Agent",
+                format!("draupnir/{}", env!("CARGO_PKG_VERSION")),
+            );
         request = request.header("x-userid", &credential.user_id);
         if let Some(email) = credential
             .email
@@ -121,7 +124,7 @@ impl GrokClient {
                         .header("x-grok-req-id", &request_id)
                         .header("x-grok-model-override", &body.model)
                         .header("x-grok-session-id", &conversation_id)
-                        .header("x-grok-agent-id", "anvil")
+                        .header("x-grok-agent-id", "draupnir")
                         .json(body),
                     credential,
                 )
@@ -382,7 +385,7 @@ mod tests {
         assert_eq!(headers["x-xai-token-auth"], "xai-grok-cli");
         assert_eq!(headers["x-authenticateresponse"], "authenticate-response");
         assert_eq!(headers["x-grok-client-version"], "1.2.3");
-        assert_eq!(headers["x-grok-client-identifier"], "anvil");
+        assert_eq!(headers["x-grok-client-identifier"], "draupnir");
         assert_eq!(headers["x-grok-client-mode"], "headless");
         assert_eq!(headers["x-userid"], "user-1");
         assert_eq!(headers["x-email"], "user@example.com");

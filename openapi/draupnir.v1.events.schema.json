@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://anvil.brokk.ai/schemas/anvil.v1.events.schema.json",
-  "title": "Anvil run event stream (v1)",
+  "$id": "https://draupnir.brokk.ai/schemas/draupnir.v1.events.schema.json",
+  "title": "Draupnir run event stream (v1)",
   "description": "Contract for the JSON payload carried in each Server-Sent Event on GET /v1/runs/{run_id}/events. The SSE `id` field is the decimal `seq`; the SSE `event` field equals `type`. Every event shares the envelope fields and one payload variant selected by `type`. The stream ends after a terminal `run.completed`, `run.cancelled`, or `run.failed` event. The synthetic `events.gap` notice is emitted without an envelope `seq` when a reconnect falls behind the bounded replay buffer.",
   "oneOf": [
     { "$ref": "#/$defs/runCreated" },

@@ -317,7 +317,7 @@ phase-specific ordinary-routing usage is unavailable. Reported Q3 costs are actu
 result-level totals after cache effects, while prompt reductions are deterministic
 chosen-versus-full counterfactuals. Q4 candidate-window usage has complete structured
 coverage. Analysis excluded 102 cancellation-only ZIPs and five infrastructure
-markers; 83 archives contained both a result and Anvil trace.
+markers; 83 archives contained both a result and Draupnir trace.
 
 ## Current recommendation
 

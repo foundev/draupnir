@@ -26,7 +26,7 @@ fi
 # their contents to affect the shell command or the webhook payload shape.
 if ! jq --arg tag "$RELEASE_TAG" '
   (.body // "") as $notes
-  | ("**Anvil " + $tag + " is out**\n" + .url) as $headline
+  | ("**Draupnir " + $tag + " is out**\n" + .url) as $headline
   | ($headline + "\n\n") as $prefix
   | "\n\n… See the release for full notes." as $truncation
   | if $notes == "" then $headline

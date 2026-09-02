@@ -5,20 +5,20 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use common::{AnvilRun, default_agent_command, run_gh, run_prompt};
+use common::{DraupnirRun, default_agent_command, run_gh, run_prompt};
 
 #[derive(Parser, Debug)]
-#[command(about = "Interactive issue writer that drafts and creates GitHub issues via Anvil")]
+#[command(about = "Interactive issue writer that drafts and creates GitHub issues via Draupnir")]
 struct Args {
     /// GitHub repository in owner/name form.
     #[arg(long)]
     repo: String,
 
-    /// Workspace path Anvil should inspect.
+    /// Workspace path Draupnir should inspect.
     #[arg(long, default_value = ".")]
     cwd: PathBuf,
 
-    /// ACP agent command. Defaults to ANVIL_AGENT, target/debug/anvil, or cargo run.
+    /// ACP agent command. Defaults to DRAUPNIR_AGENT, target/debug/draupnir, or cargo run.
     #[arg(long)]
     agent: Option<String>,
 
@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
     let agent = args.agent.unwrap_or_else(default_agent_command);
     let cwd = args.cwd.canonicalize()?;
 
-    println!("Anvil issue writer for {}", args.repo);
+    println!("Draupnir issue writer for {}", args.repo);
     let mut initial_description = args.prompt.clone();
     if initial_description.is_none() {
         println!("Describe the issue. Finish with an empty line.\n");
@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
             repo = args.repo,
         );
 
-        let mut config = AnvilRun::read_only(agent.clone(), cwd.clone());
+        let mut config = DraupnirRun::read_only(agent.clone(), cwd.clone());
         config.echo = false;
         let draft_text = run_prompt(config, prompt).await?;
         let draft = IssueDraft::parse(&draft_text);

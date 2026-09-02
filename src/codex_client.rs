@@ -90,7 +90,7 @@ const FALLBACK_CHATGPT_MODEL: &str = "gpt-5-codex";
 /// published model catalog cannot be fetched. The server uses this to gate
 /// per-model rollout via each `ModelInfo.minimal_client_version`: any model
 /// whose minimum exceeds the value we send is filtered out of `/models`
-/// before it reaches us. Sending Anvil's own crate version signals we're a
+/// before it reaches us. Sending Draupnir's own crate version signals we're a
 /// primitive client and the server hands back only older models.
 ///
 /// This is a compatibility floor, not impersonation: the user *is*
@@ -101,7 +101,7 @@ const FALLBACK_CODEX_COMPAT_CLIENT_VERSION: &str = "0.144.0";
 
 /// Codex's checked-in model catalog. We use the maximum visible
 /// `minimal_client_version` from this manifest as the `/codex/models`
-/// client version so Anvil tracks newly published Codex model gates without
+/// client version so Draupnir tracks newly published Codex model gates without
 /// depending on a locally installed Codex CLI.
 const CODEX_MODELS_MANIFEST_URL: &str =
     "https://raw.githubusercontent.com/openai/codex/main/codex-rs/models-manager/models.json";
@@ -1114,7 +1114,7 @@ pub(crate) struct ResponsesRequest {
     /// Ask for reasoning items to come back with their encrypted payload.
     /// Codex CLI sends this on every request and this backend accepts it;
     /// the item arrives on `response.output_item.done` with a populated
-    /// `encrypted_content`. Anvil does not echo those items back into the
+    /// `encrypted_content`. Draupnir does not echo those items back into the
     /// next turn's input today -- doing so is a message-construction change,
     /// not a transport one -- but requesting them keeps this client's
     /// envelope identical to the reference client's.

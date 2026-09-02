@@ -5,7 +5,7 @@ measured, what was fixed, what the architecture appears to be, and the open
 questions with the evidence needed to answer them. Companion dossiers in
 `dossier/`: `probe-sl3-postmortem-2026-07-29.md` (seven failure audits),
 `heldout-a-findings-2026-07-29.md` (generalization result),
-`followup-tickets-2026-07-28.md` (filed as mjolnir#506, anvil#311-313).*
+`followup-tickets-2026-07-28.md` (filed as mjolnir#506, draupnir#311-313).*
 
 ---
 
@@ -39,8 +39,8 @@ evidence for it, or work that had to happen before it could be measured.
 | sweep | config | result | note |
 |---|---|---|---|
 | fullLuna/fullDs | pre-session | 8% / 3.5% | **unusable**: 186/225 attempts ran with a dead supervisor (sol daily TPD quota exhausted; 429s were classified retryable and the fallback laundered arbitrary checkpoints) |
-| vluna-aws | vanilla anvil, luna | 61% raw / 66% valid | the deconfounder: anvil scaffold is *not* the problem (published mini-swe-agent luna = 72.2% on same tasks) |
-| vluna-rerun | vanilla, 11 timed-out tasks, 3h cap | 6/21 = 29% | those tasks are anvil-hard, not merely slow; corrected full-set vanilla ~61% vs 72.2% published (~11pt scaffold gap, concentrated in that cluster — **open item**) |
+| vluna-aws | vanilla draupnir, luna | 61% raw / 66% valid | the deconfounder: draupnir scaffold is *not* the problem (published mini-swe-agent luna = 72.2% on same tasks) |
+| vluna-rerun | vanilla, 11 timed-out tasks, 3h cap | 6/21 = 29% | those tasks are draupnir-hard, not merely slow; corrected full-set vanilla ~61% vs 72.2% published (~11pt scaffold gap, concentrated in that cluster — **open item**) |
 | probe-sl (35 tasks) | asgard, trajectory mgmt + classifier fix | 22/35 = 63% | 71% valid; 9 failures audited |
 | probe-sl2 (35) | + supervisor-epistemics layer | 21/35 = 60% | flat; 3 in / 4 out — flip-band |
 | probe-sl3 (35) | + simplification (register deleted) | **28/35 = 80%** | all 3 chronic timeouts converted |
@@ -109,12 +109,12 @@ assertion *the reference solution also fails*. Both spec-test authors,
 spawned at deliberately contrasting vantages, independently wrote the same
 wrong reading — dual reading cannot break a prior both models hold.
 
-## 5. What shipped (anvil, branch `anvil-checkpoints`)
+## 5. What shipped (draupnir, branch `draupnir-checkpoints`)
 
 Chronologically, with the evidence that motivated each:
 
 - **Permission-classifier fix** (`51b803d`, `3d3d492`, brokkbench `4449f26`).
-  mjolnir's `--permission-mode bypassPermissions` never reached anvil, so
+  mjolnir's `--permission-mode bypassPermissions` never reached draupnir, so
   every benchmark session ran in Auto mode and paid an **untraced** classifier
   LLM call per gated tool call — profiled at **52% of attempt wall-clock,
   65% of all LLM calls, plus a 19% spurious-denial rate**. Fixed via
@@ -201,8 +201,8 @@ Operational notes for whoever picks this up:
    could not — and the system then destroyed the evidence via step budget,
    compaction, and discard). This is the only demonstrated attractor-killer
    and it is unbuilt.
-4. **The ~11-point vanilla-anvil vs mini-swe-agent scaffold gap**,
-   concentrated in ~11 identifiable tasks. Leading suspect: anvil's step
+4. **The ~11-point vanilla-draupnir vs mini-swe-agent scaffold gap**,
+   concentrated in ~11 identifiable tasks. Leading suspect: draupnir's step
    granularity (~151 small steps vs mini-swe's ~64) interacting with those
    tasks' shapes.
 5. **Does the time lease recover ds-class workers?** cds2 timed out on 37%

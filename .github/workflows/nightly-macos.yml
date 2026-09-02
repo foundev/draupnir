@@ -45,7 +45,7 @@ jobs:
       - name: Run Clippy lints
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Build Anvil
+      - name: Build Draupnir
         run: cargo build --release
 
       - name: Run tests

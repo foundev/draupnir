@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: Anvil Agent API
+  title: Draupnir Agent API
   description: >
-    Versioned REST surface of the Anvil agent runtime (`anvil serve`).
+    Versioned REST surface of the Draupnir agent runtime (`draupnir serve`).
     This document, together with the companion SSE event schema
-    (`anvil.v1.events.schema.json`), is the authoritative wire contract:
+    (`draupnir.v1.events.schema.json`), is the authoritative wire contract:
     clients may be generated from these artifacts, and the black-box
     conformance suite (`tests/http_conformance.rs`) validates a
     running daemon against them. See COMPATIBILITY.md for the evolution
@@ -332,7 +332,7 @@ paths:
         Ordered `text/event-stream`. Each SSE message carries the event's
         sequence number as its `id`, the event type as its `event` name,
         and a JSON payload described by the companion event schema
-        (`anvil.v1.events.schema.json`) as its `data`. Reconnect with the
+        (`draupnir.v1.events.schema.json`) as its `data`. Reconnect with the
         standard `Last-Event-ID` header (or the `after_seq` query
         parameter) to replay from a bounded per-run buffer; falling behind
         the buffer yields an `events.gap` notice. The stream ends after the
@@ -357,7 +357,7 @@ paths:
             text/event-stream:
               schema:
                 type: string
-                description: See anvil.v1.events.schema.json for the payload
+                description: See draupnir.v1.events.schema.json for the payload
                   contract of each event.
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
@@ -454,7 +454,7 @@ components:
       scheme: bearer
       description: Required on every `/v1` endpoint when the daemon is
         started with a token (`--auth-token`, `--auth-token-file`,
-        `ANVIL_HTTP_TOKEN`, or `--generate-auth-token`). Always required
+        `DRAUPNIR_HTTP_TOKEN`, or `--generate-auth-token`). Always required
         for non-loopback listeners. `/health` is always unauthenticated.
 
   parameters:
@@ -533,7 +533,7 @@ components:
       required: [status, name, version, models_discovered]
       properties:
         status: { type: string, const: ok }
-        name: { type: string, const: anvil }
+        name: { type: string, const: draupnir }
         version: { type: string }
         models_discovered: { type: integer, format: int64, minimum: 0 }
       additionalProperties: false
@@ -728,7 +728,7 @@ components:
 
     McpServerConfig:
       type: object
-      description: Anvil's internal MCP server configuration shape.
+      description: Draupnir's internal MCP server configuration shape.
         Per-session servers are additive to the daemon's canonical setup.
       required: [name]
       properties:

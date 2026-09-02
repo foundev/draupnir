@@ -37,7 +37,7 @@ cargo build --release --target x86_64-unknown-linux-musl
 ```
 
 The controlled DeepSWE pilot uses identical task/model settings and places the
-mode variables in each task's `[environment.env]` table so the containerized Anvil
+mode variables in each task's `[environment.env]` table so the containerized Draupnir
 process inherits them. The common runner shape is:
 
 ```bash
@@ -46,8 +46,8 @@ uv run python bpr_agent.py --engine deepswe \
   --tasksdir /path/to/mode-specific/tasks \
   --asgard-candidates 3 \
   --asgard-supervisor deepseek::deepseek-v4-pro \
-  --anvil-bin /path/to/anvil/target/x86_64-unknown-linux-musl/release/anvil \
-  --no-anvil-rebuild --headless
+  --draupnir-bin /path/to/draupnir/target/x86_64-unknown-linux-musl/release/draupnir \
+  --no-draupnir-rebuild --headless
 ```
 
 The checked-in `live_experiments.json` stages the corrected-bootstrap Q3 and Q4
@@ -65,7 +65,7 @@ python3 research/asgard_3_4/run_live_detached.py \
 
 The detached launcher gives each controller an explicit log and process session,
 so it can continue across research-agent turns. Status classifies archives with
-both `result.json` and `anvil-trace.jsonl` as captured and reports cancellation or
+both `result.json` and `draupnir-trace.jsonl` as captured and reports cancellation or
 corrupt ZIPs separately; infrastructure marker JSON does not count as a completed
 result. A controller PID may be unobservable from a later sandbox PID namespace,
 so artifact counts and the controller log are authoritative.
@@ -191,8 +191,8 @@ probes and total raw input per run increased 1.1%; the rollout is a no-go.
 
 ## Archive corpus
 
-`extract_archive_corpus.py` turns one or more Anvil result zip archives into a
-machine-readable JSONL window corpus. It joins `anvil-stderr.txt` dossier byte
+`extract_archive_corpus.py` turns one or more Draupnir result zip archives into a
+machine-readable JSONL window corpus. It joins `draupnir-stderr.txt` dossier byte
 telemetry to ordinary `asgard_decision` supervisor records by ordinal and excludes
 `completion_review` records. This is necessarily an ordinal join because current
 decision trace records have no window field.
@@ -245,7 +245,7 @@ identities, with three successes common to both cohorts. Task and run are one
 identity (`task-id::rN`), so two runs of the same task are separate protected
 regressions.
 
-Regenerate it from the archived public result metadata and Anvil archives:
+Regenerate it from the archived public result metadata and Draupnir archives:
 
 ```bash
 python3 research/asgard_3_4/build_known_success_corpus.py \
@@ -274,7 +274,7 @@ cohort, a 15-identity union, and three common successes. The corpus records:
 Facts and research inferences are separate top-level fields.
 `known_success_corpus.schema.json` describes both JSONL record types. The builder
 selects successes using public agent-result metadata and reads only
-`anvil-trace.jsonl`, `anvil-stderr.txt`, and `model.patch` from an archive. It
+`draupnir-trace.jsonl`, `draupnir-stderr.txt`, and `model.patch` from an archive. It
 does **not** read or copy `verifier-output.txt` or `verifier.tar.gz`; hidden-test
 details therefore cannot enter the corpus.
 
@@ -295,10 +295,10 @@ usage: extract_archive_corpus.py [-h] [-m MANIFEST] [-o OUTPUT]
                                  [ARCHIVE ...]
 
 Extract aligned Asgard ordinary-routing windows and Q3/Q4 summary metrics from
-Anvil result zip archives.
+Draupnir result zip archives.
 
 positional arguments:
-  ARCHIVE               Anvil result zip archive (repeatable)
+  ARCHIVE               Draupnir result zip archive (repeatable)
 
 options:
   -h, --help            show this help message and exit

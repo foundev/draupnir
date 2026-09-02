@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::borrow::Cow;
 
-pub const ACP_META_NAMESPACE: &str = "anvil";
+pub const ACP_META_NAMESPACE: &str = "draupnir";
 const ACP_META_STRUCTURED_OUTPUT_KEY: &str = "structuredOutput";
 const MAX_INVALID_EXCERPT_CHARS: usize = 400;
 
@@ -548,7 +548,7 @@ mod tests {
     #[test]
     fn parses_valid_request_meta() {
         let meta = serde_json::json!({
-            "anvil": {
+            "draupnir": {
                 "structuredOutput": {
                     "schemaName": "audit_result",
                     "schema": sample_schema(),
@@ -571,7 +571,7 @@ mod tests {
     #[test]
     fn parses_missing_allow_coercion_as_false() {
         let meta = serde_json::json!({
-            "anvil": {
+            "draupnir": {
                 "structuredOutput": {
                     "schemaName": "audit_result",
                     "schema": sample_schema()
@@ -593,7 +593,7 @@ mod tests {
     #[test]
     fn rejects_missing_schema_fields() {
         let meta = serde_json::json!({
-            "anvil": {
+            "draupnir": {
                 "structuredOutput": {
                     "schema": sample_schema()
                 }
@@ -606,16 +606,16 @@ mod tests {
     #[test]
     fn rejects_malformed_namespace() {
         let meta = serde_json::json!({
-            "anvil": "not-an-object"
+            "draupnir": "not-an-object"
         });
         let err = parse_structured_output_request(meta.as_object()).unwrap_err();
-        assert!(err.to_string().contains("_meta.anvil"));
+        assert!(err.to_string().contains("_meta.draupnir"));
     }
 
     #[test]
     fn rejects_non_boolean_allow_coercion() {
         let meta = serde_json::json!({
-            "anvil": {
+            "draupnir": {
                 "structuredOutput": {
                     "schemaName": "audit_result",
                     "schema": sample_schema(),
@@ -630,7 +630,7 @@ mod tests {
     #[test]
     fn rejects_unsupported_coercion_schema_shapes() {
         let meta = serde_json::json!({
-            "anvil": {
+            "draupnir": {
                 "structuredOutput": {
                     "schemaName": "audit_result",
                     "schema": {

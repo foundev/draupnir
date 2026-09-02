@@ -8,9 +8,9 @@ use std::time::Duration;
 
 const DUCKDUCKGO_HTML_URL: &str = "https://html.duckduckgo.com/html/";
 const USER_AGENT: &str = concat!(
-    "brokk-anvil/",
+    "brokk-draupnir/",
     env!("CARGO_PKG_VERSION"),
-    " (+https://github.com/BrokkAi/anvil)"
+    " (+https://github.com/BrokkAi/draupnir)"
 );
 const MAX_RESULTS: usize = 10;
 const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;

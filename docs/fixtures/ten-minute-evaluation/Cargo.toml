@@ -1,5 +1,5 @@
 [package]
-name = "anvil-ten-minute-evaluation"
+name = "draupnir-ten-minute-evaluation"
 version = "0.0.0"
 edition = "2024"
 publish = false

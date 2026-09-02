@@ -847,7 +847,7 @@ fn is_builtin_tool(name: &str) -> bool {
 /// One row of the static tool catalog exposed over the HTTP API
 /// (`GET /v1/tools`). Derived from the `TOOLS` metadata table so the HTTP
 /// surface cannot drift from the permission gate's view of the harness.
-/// Rows for MCP-loaded tools describe Anvil's default Bifrost toolset; a
+/// Rows for MCP-loaded tools describe Draupnir's default Bifrost toolset; a
 /// session's live registry may expose fewer (server disabled) or more
 /// (extra MCP servers) at prompt time.
 #[cfg(feature = "http-api")]
@@ -1533,7 +1533,7 @@ impl ToolRegistry {
     ) -> ToolResult {
         if name == "run_shell_command"
             && outside_sandbox_once
-            && std::env::var_os("ANVIL_OFFLINE_SHELL").is_some()
+            && std::env::var_os("DRAUPNIR_OFFLINE_SHELL").is_some()
         {
             return ToolResult {
                 status: ToolStatus::RequestError,

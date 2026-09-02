@@ -777,7 +777,7 @@ mod tests {
         ]);
         let meta = usage_by_model_meta(&usage_by_model);
         assert_eq!(
-            meta["anvil"]["usageByModel"]["deepseek::deepseek-v4-pro"]["totalTokens"],
+            meta["draupnir"]["usageByModel"]["deepseek::deepseek-v4-pro"]["totalTokens"],
             pro_usage.total_tokens()
         );
 
@@ -790,17 +790,17 @@ mod tests {
             },
         );
         assert_eq!(
-            failure_meta["anvil"]["turnFailure"]["message"],
+            failure_meta["draupnir"]["turnFailure"]["message"],
             "supervisor produced no valid decision"
         );
         assert_eq!(
-            failure_meta["anvil"]["usageByModel"]["deepseek::deepseek-v4-pro"]["totalTokens"],
+            failure_meta["draupnir"]["usageByModel"]["deepseek::deepseek-v4-pro"]["totalTokens"],
             pro_usage.total_tokens()
         );
     }
 
     #[test]
-    fn bedrock_credit_metadata_attaches_and_preserves_existing_anvil_metadata() {
+    fn bedrock_credit_metadata_attaches_and_preserves_existing_draupnir_metadata() {
         let mut meta = usage_by_model_meta(&BTreeMap::from([(
             "bedrock::model".to_string(),
             crate::llm_client::TokenUsage::default(),
@@ -820,9 +820,9 @@ mod tests {
                 as_of: "2026-07-15T18:42:00Z".into(),
             },
         );
-        assert!(meta["anvil"]["usageByModel"].is_object());
-        assert_eq!(meta["anvil"]["turnFailure"]["message"], "retry");
-        assert_eq!(meta["anvil"]["bedrockCredits"]["status"], "unavailable");
+        assert!(meta["draupnir"]["usageByModel"].is_object());
+        assert_eq!(meta["draupnir"]["turnFailure"]["message"], "retry");
+        assert_eq!(meta["draupnir"]["bedrockCredits"]["status"], "unavailable");
     }
 
     #[test]
@@ -857,7 +857,7 @@ mod tests {
     }
 
     #[test]
-    fn openrouter_balance_metadata_attaches_and_preserves_existing_anvil_metadata() {
+    fn openrouter_balance_metadata_attaches_and_preserves_existing_draupnir_metadata() {
         let mut meta = usage_by_model_meta(&BTreeMap::from([(
             "openrouter::vendor/model".to_string(),
             crate::llm_client::TokenUsage::default(),
@@ -879,10 +879,10 @@ mod tests {
                 as_of: "2026-07-15T18:42:00Z".into(),
             },
         );
-        assert!(meta["anvil"]["usageByModel"].is_object());
-        assert_eq!(meta["anvil"]["turnFailure"]["message"], "retry");
-        assert_eq!(meta["anvil"]["openrouterBalance"]["status"], "available");
-        assert_eq!(meta["anvil"]["openrouterBalance"]["remainingUsd"], 0.0);
+        assert!(meta["draupnir"]["usageByModel"].is_object());
+        assert_eq!(meta["draupnir"]["turnFailure"]["message"], "retry");
+        assert_eq!(meta["draupnir"]["openrouterBalance"]["status"], "available");
+        assert_eq!(meta["draupnir"]["openrouterBalance"]["remainingUsd"], 0.0);
     }
 
     #[test]
@@ -904,7 +904,7 @@ mod tests {
     }
 
     #[test]
-    fn deepseek_balance_metadata_attaches_and_preserves_existing_anvil_metadata() {
+    fn deepseek_balance_metadata_attaches_and_preserves_existing_draupnir_metadata() {
         let mut meta = usage_by_model_meta(&BTreeMap::from([(
             "deepseek::deepseek-chat".to_string(),
             crate::llm_client::TokenUsage::default(),
@@ -929,11 +929,11 @@ mod tests {
                 as_of: "2026-07-15T18:42:00Z".into(),
             },
         );
-        assert!(meta["anvil"]["usageByModel"].is_object());
-        assert_eq!(meta["anvil"]["turnFailure"]["message"], "retry");
-        assert_eq!(meta["anvil"]["deepseekBalance"]["status"], "available");
+        assert!(meta["draupnir"]["usageByModel"].is_object());
+        assert_eq!(meta["draupnir"]["turnFailure"]["message"], "retry");
+        assert_eq!(meta["draupnir"]["deepseekBalance"]["status"], "available");
         assert_eq!(
-            meta["anvil"]["deepseekBalance"]["balances"][0]["totalBalance"],
+            meta["draupnir"]["deepseekBalance"]["balances"][0]["totalBalance"],
             "12.3400"
         );
     }

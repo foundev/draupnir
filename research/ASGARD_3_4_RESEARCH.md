@@ -2,7 +2,7 @@
 
 ## Workspace and scope
 
-- Worktree: `/mnt/optane/anvil-asgard-stateful-probe`
+- Worktree: `/mnt/optane/draupnir-asgard-stateful-probe`
 - Branch: `asgard/stateful-probe-tournament`
 - Base: `bc8a690` (`Synchronize Asgard repositories incrementally`)
 - This is a research branch. Code is cheap; information is the deliverable.

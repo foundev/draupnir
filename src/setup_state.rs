@@ -8,7 +8,7 @@
 //! welcome on every new session. ACP session config options such as model,
 //! reasoning effort, behavior mode, and permission mode are intentionally not
 //! stored here; clients must send them for each session. It also stores
-//! user-configured MCP servers; when that field is absent, Anvil seeds the
+//! user-configured MCP servers; when that field is absent, Draupnir seeds the
 //! config with its preinstalled servers. An optional `allowed_tools` list
 //! constrains the install-wide model-facing tool catalog.
 

@@ -98,7 +98,7 @@ class ProbePolicyAnalysisTests(unittest.TestCase):
         }
         path = self.root / f"{name}.zip"
         with zipfile.ZipFile(path, "w") as archive:
-            archive.writestr("anvil-trace.jsonl", "\n".join(map(json.dumps, rows)))
+            archive.writestr("draupnir-trace.jsonl", "\n".join(map(json.dumps, rows)))
             archive.writestr("result.json", json.dumps(result))
             archive.writestr("reward.json", json.dumps({"reward": 1, "partial": 1}))
         return path

@@ -3,11 +3,11 @@ title: Subagent Concurrency
 description: Ordering, isolation, cancellation, observability, and result guarantees for delegated work.
 ---
 
-Anvil executes mutations deterministically and can batch independent reads. The same rules cover built-in, MCP, and delegated `task` calls.
+Draupnir executes mutations deterministically and can batch independent reads. The same rules cover built-in, MCP, and delegated `task` calls.
 
 ## Execution order
 
-When a model emits multiple tool calls in one step, Anvil divides them by concurrency safety:
+When a model emits multiple tool calls in one step, Draupnir divides them by concurrency safety:
 
 1. Mutating, promptable, or otherwise unsafe calls run serially in their original order.
 2. Concurrency-safe calls then run in a bounded batch of at most six.
@@ -37,7 +37,7 @@ One cancellation token is shared by the prompt, its tool calls, and all subagent
 | `--max-turns` | `0` (unbounded) | Agent-loop turns per prompt; subagents inherit it unless their definition sets a lower value. |
 | `--llm-idle-timeout-secs` | `300` | Wait for first meaningful LLM stream progress. |
 | `--llm-stall-timeout-secs` | `60` | Wait between meaningful chunks after progress begins. |
-| Shell timeout | `120s` | One shell call; `timeout_seconds` is clamped to 10-3600 seconds. Lower the ceiling with `ANVIL_SHELL_TIMEOUT_CAP_SECONDS`. |
+| Shell timeout | `120s` | One shell call; `timeout_seconds` is clamped to 10-3600 seconds. Lower the ceiling with `DRAUPNIR_SHELL_TIMEOUT_CAP_SECONDS`. |
 
 These controls are not a universal wall-clock deadline. A client or bot that needs an overall deadline must send `session/cancel` when it expires.
 
@@ -47,7 +47,7 @@ Parent-level tool calls emit pending, in-progress, and completed or failed `sess
 
 Per-lane results are plain text. A structured-output request applies to the top-level prompt, so the parent or client must aggregate lane text into the requested schema. Parallel results are recorded in deterministic dispatch order.
 
-Set `ANVIL_TRACE_JSONL=<path>` for local LLM and step diagnostics. Trace files can contain sensitive prompt and project data; protect them accordingly.
+Set `DRAUPNIR_TRACE_JSONL=<path>` for local LLM and step diagnostics. Trace files can contain sensitive prompt and project data; protect them accordingly.
 
 ## Current non-guarantees
 
@@ -57,4 +57,4 @@ Set `ANVIL_TRACE_JSONL=<path>` for local LLM and step diagnostics. Trace files c
 - no ACP stream of a subagent's internal steps; and
 - no separate filesystem or process isolation between lanes.
 
-These boundaries are part of Anvil's current public behavior. Consumers should not infer stronger isolation or scheduling guarantees from calls that happen to finish concurrently.
+These boundaries are part of Draupnir's current public behavior. Consumers should not infer stronger isolation or scheduling guarantees from calls that happen to finish concurrently.

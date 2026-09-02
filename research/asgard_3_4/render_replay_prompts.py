@@ -38,7 +38,7 @@ STATE_UPDATE_CONTRACT = (
 def trace_rows(path: Path) -> Iterable[dict[str, Any]]:
     if path.suffix == ".zip":
         with zipfile.ZipFile(path) as archive:
-            raw = archive.read("anvil-trace.jsonl").decode("utf-8", "replace")
+            raw = archive.read("draupnir-trace.jsonl").decode("utf-8", "replace")
     else:
         raw = path.read_text(encoding="utf-8")
     for number, line in enumerate(raw.splitlines(), 1):
@@ -352,7 +352,7 @@ def validate_captured_mode(record: dict[str, Any]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("trace", type=Path, help="archive zip or anvil-trace.jsonl")
+    parser.add_argument("trace", type=Path, help="archive zip or draupnir-trace.jsonl")
     parser.add_argument("--validate", action="store_true", help="validate captured mode")
     parser.add_argument("--mode", choices=MODES, help="render this mode as JSONL")
     args = parser.parse_args()

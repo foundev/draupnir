@@ -1,6 +1,6 @@
-# Contributing to Anvil
+# Contributing to Draupnir
 
-Thanks for helping improve Anvil. Contributions from people using AI tools are
+Thanks for helping improve Draupnir. Contributions from people using AI tools are
 welcome; everyone remains responsible for the accuracy, safety, licensing, and
 relevance of what they submit. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
@@ -22,7 +22,7 @@ An issue is useful but not mandatory for a well-scoped pull request. Use
 
 ## Development Setup
 
-Anvil is a Rust workspace whose default feature set embeds a
+Draupnir is a Rust workspace whose default feature set embeds a
 `wasm32-wasip2` sandbox guest in the host binary. Install the stable Rust
 toolchain and the guest target before building:
 
@@ -38,7 +38,7 @@ For a quick host-only build on a platform where the nested Wasm build is not
 available, you can disable the default feature:
 
 ```bash
-cargo build --no-default-features --bin anvil
+cargo build --no-default-features --bin draupnir
 ```
 
 That is useful while iterating, but it does not replace validating the default
@@ -46,8 +46,8 @@ feature set before submitting a change.
 
 ## Understand the Runtime Boundaries
 
-Anvil is an ACP server over stdio. The client owns the user interface and
-per-session controls; Anvil owns model routing, the tool loop, permission and
+Draupnir is an ACP server over stdio. The client owns the user interface and
+per-session controls; Draupnir owns model routing, the tool loop, permission and
 sandbox enforcement, context management, and session storage.
 
 The detailed implementation contracts are maintained in [AGENTS.md](AGENTS.md).
@@ -56,12 +56,12 @@ The most important contribution boundaries are:
 - Standard output is reserved for JSON-RPC. Send logs to standard error through
   `tracing`.
 - ACP session configuration is client-owned and live-only. Do not persist model,
-  reasoning, behavior, permission, or service-tier selections as Anvil defaults.
+  reasoning, behavior, permission, or service-tier selections as Draupnir defaults.
 - Permission, path-validation, archive, MCP, and sandbox changes must fail
   closed. Cover both the allowed behavior and relevant denial or malformed-input
   paths.
 - Provider discovery failures should normally be logged and treated as an
-  unavailable provider rather than preventing Anvil from starting.
+  unavailable provider rather than preventing Draupnir from starting.
 - Do not add lint suppressions to make CI pass. Fix the underlying code; if a
   suppression is genuinely required by an external constraint, document the
   invariant that makes it safe.
@@ -111,7 +111,7 @@ and sandbox availability when changing platform-sensitive code.
 
 ## Dependency and License Changes
 
-Commit `Cargo.lock` when dependency resolution changes. Anvil uses a reviewed,
+Commit `Cargo.lock` when dependency resolution changes. Draupnir uses a reviewed,
 deny-by-default dependency-license policy and ships generated third-party
 notices in release archives. Do not broaden an allowed license or add an
 exception without explaining and reviewing the obligation it introduces.
@@ -163,14 +163,14 @@ Reviewers will pay particular attention to:
 ## Releases
 
 Releases are maintainer-driven. `Cargo.toml` is the version source of truth;
-release-preparation commits update the `brokk-anvil` version in both
+release-preparation commits update the `brokk-draupnir` version in both
 `Cargo.toml` and `Cargo.lock`.
 
 A `vX.Y.Z` tag triggers the GitHub release and crates.io workflows.
 The workflows refuse to publish when the tag and `Cargo.toml` version differ.
 They build the supported Linux, Android, Windows, and macOS archives, attach
 SHA-256 sidecars, include the required license and source-notice files, and
-publish the `brokk-anvil` crate.
+publish the `brokk-draupnir` crate.
 
 To announce a published GitHub Release in Discord, set the
 `DISCORD_RELEASE_WEBHOOK_URL` repository Actions secret to the target channel's

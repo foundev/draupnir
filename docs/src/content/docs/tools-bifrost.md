@@ -3,7 +3,7 @@ title: Tools and Managed Bifrost
 description: Understand built-in tools, code intelligence, and the evidence each tool provides.
 ---
 
-Anvil combines built-in execution tools with tools supplied by MCP servers. The model-facing catalog is assembled per session and permission policy applies to every call.
+Draupnir combines built-in execution tools with tools supplied by MCP servers. The model-facing catalog is assembled per session and permission policy applies to every call.
 
 ## Built-In Tools
 
@@ -18,13 +18,13 @@ Use the tool that matches the question:
 
 ## Managed Bifrost
 
-Anvil preconfigures an enabled local Bifrost MCP server:
+Draupnir preconfigures an enabled local Bifrost MCP server:
 
 ```text
 <managed-bifrost> --root {cwd} --mcp core --no-line-numbers
 ```
 
-On first use, Anvil downloads the pinned release for the current platform, verifies its checksum, and caches it under the Anvil configuration directory. Network failure prevents that cold start; later sessions reuse the cached binary.
+On first use, Draupnir downloads the pinned release for the current platform, verifies its checksum, and caches it under the Draupnir configuration directory. Network failure prevents that cold start; later sessions reuse the cached binary.
 
 The managed `core` toolset includes:
 
@@ -42,7 +42,7 @@ Tool names can evolve with the pinned Bifrost release. Use the advertised sessio
 
 A visible Bifrost call proves the configured analyzer answered that request; it does not prove every runtime target, path-sensitive behavior, or whole-program property. Inspect truncation, ambiguity, and diagnostics when present. A candidate importer file is not proof of an actual callsite, and text similarity is not declaration identity.
 
-The [ten-minute evaluation](/evaluate-anvil/) deliberately requires named Bifrost tools so a plausible model answer cannot pass by ordinary file reading.
+The [ten-minute evaluation](/evaluate-draupnir/) deliberately requires named Bifrost tools so a plausible model answer cannot pass by ordinary file reading.
 
 ## Restrict the Catalog
 

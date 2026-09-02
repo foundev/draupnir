@@ -3,13 +3,13 @@ import starlight from '@astrojs/starlight';
 import { defineConfig, fontProviders } from 'astro/config';
 import rehypeBasePathLinks from './rehype-base-path-links.mjs';
 
-const site = process.env.PUBLIC_DOCS_SITE ?? 'https://anvil.brokk.ai';
+const site = process.env.PUBLIC_DOCS_SITE ?? 'https://draupnir.brokk.ai';
 const productionBase = process.env.PUBLIC_DOCS_BASE ?? '/';
 const isDev = process.argv.includes('dev');
 const base = isDev ? '/' : productionBase;
 const socialCardPath = [
   productionBase.replace(/^\/+|\/+$/g, ''),
-  'anvil-social-card.png',
+  'draupnir-social-card.png',
 ]
   .filter(Boolean)
   .join('/');
@@ -25,8 +25,8 @@ export default defineConfig({
    * the @font-face rules inline, preloads the files from our own origin, and derives
    * fallback metrics so swapping in the real face does not shift layout.
    *
-   * Weights are exactly the ones the stylesheets ask for -- see --anvil-weight-* in
-   * src/styles/anvil.css. Adding a weight here without a matching rule ships dead bytes.
+   * Weights are exactly the ones the stylesheets ask for -- see --draupnir-weight-* in
+   * src/styles/draupnir.css. Adding a weight here without a matching rule ships dead bytes.
    */
   fonts: [
     {
@@ -61,7 +61,7 @@ export default defineConfig({
   },
   integrations: [
     starlight({
-      title: 'Anvil',
+      title: 'Draupnir',
       description: 'A portable agent runtime for your ACP interface.',
       head: [
         { tag: 'meta', attrs: { property: 'og:image', content: socialCardUrl } },
@@ -73,7 +73,7 @@ export default defineConfig({
           attrs: {
             property: 'og:image:alt',
             content:
-              'Anvil, the portable agent runtime for ACP clients: one agent engine, your interface.',
+              'Draupnir, the portable agent runtime for ACP clients: one agent engine, your interface.',
           },
         },
         { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
@@ -83,25 +83,25 @@ export default defineConfig({
           attrs: {
             name: 'twitter:image:alt',
             content:
-              'Anvil, the portable agent runtime for ACP clients: one agent engine, your interface.',
+              'Draupnir, the portable agent runtime for ACP clients: one agent engine, your interface.',
           },
         },
       ],
-      customCss: ['./src/styles/anvil.css'],
+      customCss: ['./src/styles/draupnir.css'],
       components: {
-        Head: './src/components/AnvilHead.astro',
-        Header: './src/components/AnvilHeader.astro',
-        Hero: './src/components/AnvilHero.astro',
+        Head: './src/components/DraupnirHead.astro',
+        Header: './src/components/DraupnirHeader.astro',
+        Hero: './src/components/DraupnirHero.astro',
       },
       favicon: '/favicon.svg',
       editLink: {
-        baseUrl: 'https://github.com/BrokkAi/anvil/edit/master/docs/',
+        baseUrl: 'https://github.com/BrokkAi/draupnir/edit/master/docs/',
       },
       social: [
         {
           icon: 'github',
           label: 'GitHub',
-          href: 'https://github.com/BrokkAi/anvil',
+          href: 'https://github.com/BrokkAi/draupnir',
         },
       ],
       sidebar: [
@@ -109,14 +109,14 @@ export default defineConfig({
           label: 'Start',
           items: [
             { label: 'Overview', slug: 'overview' },
-            { label: 'Install Anvil', slug: 'install' },
-            { label: '10-Minute Evaluation', slug: 'evaluate-anvil' },
+            { label: 'Install Draupnir', slug: 'install' },
+            { label: '10-Minute Evaluation', slug: 'evaluate-draupnir' },
             { label: 'License and Use Cases', slug: 'license-use-cases' },
             { label: 'Third-Party Notices', slug: 'third-party-notices' },
           ],
         },
         {
-          label: 'Use Anvil',
+          label: 'Use Draupnir',
           items: [
             { label: 'Zed', slug: 'zed' },
             { label: 'JetBrains', slug: 'jetbrains' },
@@ -129,7 +129,7 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Extend Anvil',
+          label: 'Extend Draupnir',
           items: [
             { label: 'MCP Servers', slug: 'mcp' },
             { label: 'Skills and Plugins', slug: 'skills-plugins' },

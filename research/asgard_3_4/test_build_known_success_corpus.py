@@ -79,10 +79,10 @@ class BuildKnownSuccessCorpusTest(unittest.TestCase):
 """
         with zipfile.ZipFile(archive_path, "w") as archive:
             archive.writestr(
-                "anvil-trace.jsonl",
+                "draupnir-trace.jsonl",
                 "\n".join(json.dumps(row) for row in rows) + "\n",
             )
-            archive.writestr("anvil-stderr.txt", stderr)
+            archive.writestr("draupnir-stderr.txt", stderr)
             archive.writestr("model.patch", patch)
             # The builder must neither parse nor copy these hidden artifacts.
             archive.writestr("verifier-output.txt", "SECRET HIDDEN FAILURE DETAIL")
@@ -100,7 +100,7 @@ class BuildKnownSuccessCorpusTest(unittest.TestCase):
             "stopReason": "SUCCESS",
             "archivePath": str(archive_path),
             "baseCommit": "abc",
-            "anvilSha256": "def",
+            "draupnirSha256": "def",
             "changedFiles": ["demo.py"],
             "reward": {"reward": 1, "partial": 1.0},
         }

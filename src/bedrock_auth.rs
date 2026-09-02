@@ -227,7 +227,7 @@ pub fn region_from_any_source() -> String {
 }
 
 /// Read the default model from all configured sources.
-/// Precedence: ANVIL_BEDROCK_MODEL env > brokk config > hardcoded default.
+/// Precedence: DRAUPNIR_BEDROCK_MODEL env > brokk config > hardcoded default.
 pub fn model_from_any_source() -> String {
     if let Ok(val) = std::env::var(crate::bedrock_client::BEDROCK_MODEL_ENV) {
         let trimmed = val.trim();
@@ -257,7 +257,7 @@ mod tests {
         "AWS_REGION",
         "AWS_DEFAULT_REGION",
         "BEDROCK_REGION",
-        "ANVIL_BEDROCK_MODEL",
+        "DRAUPNIR_BEDROCK_MODEL",
     ];
 
     struct EnvScope {
@@ -601,7 +601,7 @@ mod tests {
         let _lock = crate::openrouter_auth::test_support::ENV_GUARD.blocking_lock();
         let tmp = tempfile::tempdir().unwrap();
         let mut env = EnvScope::new(tmp.path());
-        env.set_env("ANVIL_BEDROCK_MODEL", "env-model");
+        env.set_env("DRAUPNIR_BEDROCK_MODEL", "env-model");
 
         write(&BedrockAuth {
             bearer_token: "t".to_string(),

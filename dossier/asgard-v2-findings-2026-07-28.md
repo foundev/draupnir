@@ -9,7 +9,7 @@ the honest gap accounting vs vanilla single-agent baselines.*
 ## 1. What ran
 
 Two concurrent full-corpus sweeps on the local box (30 threads total, 120m/attempt
-cap, binary `anvil-7f54968`, supervisor `bedrock::openai.gpt-5.6-sol+high`):
+cap, binary `draupnir-7f54968`, supervisor `bedrock::openai.gpt-5.6-sol+high`):
 
 | Sweep | Worker | Attempts | Solved | TimedOut |
 |---|---|---|---|---|
@@ -35,7 +35,7 @@ Partway through, the account's Bedrock **daily** input-token quota for sol died:
 HTTP 429: quota input-tpd:842609633142:openai.gpt-5.6-sol (InputTokens) exceeded
 ```
 
-Anvil classified all 429s as retryable-transient; retries exhausted; the asgard
+Draupnir classified all 429s as retryable-transient; retries exhausted; the asgard
 fallback (`auto_save` → `finalize_latest`) then silently finalized arbitrary
 checkpoints with no supervisor judgment for the rest of the day. Each poisoned
 attempt completed looking like a normal `TESTS_FAILED`.
@@ -102,7 +102,7 @@ power to see either.
 
 ## 4. Fixes landed / in flight
 
-### Anvil (`anvil-checkpoints` branch)
+### Draupnir (`draupnir-checkpoints` branch)
 
 | Change | Status | What |
 |---|---|---|
@@ -110,7 +110,7 @@ power to see either.
 | A: intake removed entirely | **landed `2edf686`** | Both readers, gate, trace record, prompt injection — deleted, not gated. |
 | B: test-file delivery guard | **landed `9666926`** | `ASGARD_TEST_FILE_GUARD=1`: final patch excludes worker-authored test files (language-generic pattern list) + defense-in-depth exclusion of pre-existing-test edits. Checkpoints unchanged; delivery-only; off by default. Audit trace of excluded paths. |
 | ~~C: refuse test edits at tool layer~~ | **dropped by owner** | Benchmark overfitting — real-world use must allow editing tests. |
-| Prompt norm | **landed `dea93d8`** | Base anvil system prompt (all sessions, unconditional): "Prefer fixing production code over weakening an existing test; if a test is genuinely obsolete, say so explicitly." |
+| Prompt norm | **landed `dea93d8`** | Base draupnir system prompt (all sessions, unconditional): "Prefer fixing production code over weakening an existing test; if a test is genuinely obsolete, say so explicitly." |
 | D: 5xx retry tier | **landed `0ab3358`** | LLM 5xx: Fast (4 attempts, ~1.4s total) → GatewayTransient (12 attempts, ~3.5min envelope). A 2-second Bedrock blip should not kill a 90-minute attempt. |
 | E: empty-DAG loud-fail | **landed `67a236b`** | Supervisor failure + no real checkpoint → explicit abort with `abort_empty_dag` trace. Note: current code already aborted incidentally; what was broken was the audit trail (trace claimed `finalize_latest` before checking anything existed). |
 
@@ -131,7 +131,7 @@ untouched by any harness fix.
   flex types throttle sustained load and scored 1/10 on spot placement), no AZ
   pinning (EC2 placement chooses). AppArmor userns sysctl on VMs approved by owner.
   Remaining validation: one real single-task run end-to-end (blocked only on
-  the fixed anvil binary).
+  the fixed draupnir binary).
 
 ### Open holes flagged during implementation (not yet addressed)
 
@@ -171,9 +171,9 @@ filtered through the supervisor). Current architecture ≈ paying sol prices to
 run luna at half of luna's solo rate.
 
 **Confound to kill first:** vanilla numbers come from a different scaffold
-(mini-swe-agent) than asgard workers (anvil tool loop). Gap = asgard structure
+(mini-swe-agent) than asgard workers (draupnir tool loop). Gap = asgard structure
 + scaffold delta, currently inseparable. The deconfounder is cheap: plain
-single-agent anvil, luna@xhigh, same 113 tasks. If it lands ~57%, the deficit
+single-agent draupnir, luna@xhigh, same 113 tasks. If it lands ~57%, the deficit
 is all asgard structure; if ~25%, the scaffold is the problem and supervisor
 redesign is premature.
 
@@ -198,7 +198,7 @@ redesign is premature.
       add to, the existing confirmation passes (57–74% of worker time,
       producing nothing).
 2. **Is the ×3 rollout still the right spend?** Proposed instead: AWS pass 1 =
-   deconfounder (vanilla-anvil luna ×1–2) + post-fix asgard-luna ×1, then decide.
+   deconfounder (vanilla-draupnir luna ×1–2) + post-fix asgard-luna ×1, then decide.
 3. **Step-cap economics for DeepSeek-class workers** — 10 steps binds hard for
    dsv4pro (~2/3 of windows truncated) and not at all for luna. Per-model cap?
    Supervisor already sets `max_steps` 12–30 in places; worth a policy.
@@ -208,7 +208,7 @@ redesign is premature.
 
 ## Appendix: evidence pointers
 
-- Diagnosed archives: `/tmp/claude-1000/-mnt-optane-anvil-checkpoints/6769d5b7-4894-4ff5-8bd6-daf155b418bc/scratchpad/diag/<sweep>--<task>/`
+- Diagnosed archives: `/tmp/claude-1000/-mnt-optane-draupnir-checkpoints/6769d5b7-4894-4ff5-8bd6-daf155b418bc/scratchpad/diag/<sweep>--<task>/`
 - Sweep results: `/mnt/optane/{fullLuna,fullDs}/results/`
 - Grader reset behavior: `~/Projects/deep-swe/tasks/<task>/tests/grader.py` (`reset_paths(patch_paths(test_patch))`)
 - Vanilla per-task data: `~/Projects/deep-swe/published-results/deepswe-v1.1/per-task-by-model-effort.csv`

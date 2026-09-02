@@ -1,4 +1,4 @@
-//! End-to-end smoke tests for the headless `anvil --print` client (#356).
+//! End-to-end smoke tests for the headless `draupnir --print` client (#356).
 //!
 //! Each test spawns the real binary with a deterministic mock OpenAI-style
 //! provider (the same approach as `acp_smoke.rs`): canned SSE bodies are
@@ -244,11 +244,11 @@ fn smoke_env() -> SmokeEnv {
     }
 }
 
-fn anvil_binary() -> PathBuf {
-    std::env::var_os("CARGO_BIN_EXE_anvil")
+fn draupnir_binary() -> PathBuf {
+    std::env::var_os("CARGO_BIN_EXE_draupnir")
         .map(PathBuf::from)
-        .or_else(|| option_env!("CARGO_BIN_EXE_anvil").map(PathBuf::from))
-        .unwrap_or_else(|| PathBuf::from("target/debug/anvil"))
+        .or_else(|| option_env!("CARGO_BIN_EXE_draupnir").map(PathBuf::from))
+        .unwrap_or_else(|| PathBuf::from("target/debug/draupnir"))
 }
 
 fn run_print(
@@ -257,7 +257,7 @@ fn run_print(
     extra_args: &[&str],
     stdin_text: Option<&str>,
 ) -> Output {
-    let mut command = Command::new(anvil_binary());
+    let mut command = Command::new(draupnir_binary());
     command
         .args([
             "--no-wasm-sandbox",
@@ -271,8 +271,8 @@ fn run_print(
         .env("HOME", &env.home)
         .env("CODEX_HOME", env.home.join(".codex"))
         .env("BROKK_CONFIG_HOME", &env.config_home)
-        .env("ANVIL_TEST_OLLAMA_BASE_URL", provider_url)
-        // Deliberately NOT setting ANVIL_TEST_DISABLE_TURN_RECAP: headless
+        .env("DRAUPNIR_TEST_OLLAMA_BASE_URL", provider_url)
+        // Deliberately NOT setting DRAUPNIR_TEST_DISABLE_TURN_RECAP: headless
         // mode itself must suppress turn recaps. If that regresses, the
         // yolo test's file-changing turn emits a recap that both consumes an
         // extra canned LLM body and pollutes the result text.
@@ -281,13 +281,13 @@ fn run_print(
         .env_remove("BEDROCK_API_KEY")
         .env_remove("DEEPSEEK_API_KEY")
         .env_remove("KIMI_API_KEY")
-        .env_remove("ANVIL_TRACE_JSONL")
+        .env_remove("DRAUPNIR_TRACE_JSONL")
         .env_remove("BROKK_SESSION_STORAGE_ROOT")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    let mut child = command.spawn().expect("spawn anvil --print");
+    let mut child = command.spawn().expect("spawn draupnir --print");
     {
         let mut stdin = child.stdin.take().expect("stdin");
         if let Some(text) = stdin_text {
@@ -300,13 +300,13 @@ fn run_print(
     let (stdout, stdout_reader) = capture_pipe(child.stdout.take().expect("stdout"));
     let (stderr, stderr_reader) = capture_pipe(child.stderr.take().expect("stderr"));
     let status = loop {
-        match child.try_wait().expect("wait on anvil") {
+        match child.try_wait().expect("wait on draupnir") {
             Some(status) => break status,
             None if Instant::now() > deadline => {
                 let _ = child.kill();
                 let _ = child.wait();
                 panic!(
-                    "anvil --print did not exit within the deadline;\nstdout:\n{}\nstderr:\n{}",
+                    "draupnir --print did not exit within the deadline;\nstdout:\n{}\nstderr:\n{}",
                     pipe_text(&stdout),
                     pipe_text(&stderr)
                 );

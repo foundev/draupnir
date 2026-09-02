@@ -14,7 +14,7 @@ use crate::http_retry::{LlmRetryTier, RetryableLlmError};
 use crate::structured_output::StructuredOutputRequest;
 
 /// Default value for the `--llm-idle-timeout-secs` CLI flag (and the
-/// env var `ANVIL_LLM_IDLE_TIMEOUT_SECS`). The actual value used
+/// env var `DRAUPNIR_LLM_IDLE_TIMEOUT_SECS`). The actual value used
 /// per request is a required parameter on `LlmBackend::stream_chat` --
 /// callers cannot fall back to this implicitly.
 ///
@@ -909,7 +909,7 @@ pub struct ModelPricing {
 
 impl ModelPricing {
     /// Estimate the provider-billed cost for one call using the token
-    /// accounting shape Anvil already stores.
+    /// accounting shape Draupnir already stores.
     ///
     /// Input-side cached tokens still occupy the provider's prompt-token
     /// bucket, so they are billed at the input rate when a backend does
@@ -1461,7 +1461,7 @@ struct ChatCompletionChunk {
 /// OpenAI / OpenRouter / Ollama trailing usage block. Field names
 /// match the wire format (`prompt_tokens`, `completion_tokens`,
 /// `prompt_tokens_details.cached_tokens`, etc.); we translate to the
-/// ACP/anvil-internal `TokenUsage` shape at parse time so the rest of
+/// ACP/draupnir-internal `TokenUsage` shape at parse time so the rest of
 /// the codebase only sees one vocabulary.
 #[derive(Debug, Deserialize)]
 struct UsageChunk {

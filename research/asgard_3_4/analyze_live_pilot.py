@@ -36,7 +36,7 @@ def discover_archives(
                 members = set(archive.namelist())
         except zipfile.BadZipFile:
             continue
-        if {"anvil-trace.jsonl", "result.json"}.issubset(members):
+        if {"draupnir-trace.jsonl", "result.json"}.issubset(members):
             captured.append(path)
     return captured
 
@@ -53,9 +53,9 @@ def _json_member(archive: zipfile.ZipFile, name: str) -> dict[str, Any]:
 
 def _trace_rows(archive: zipfile.ZipFile) -> Iterable[dict[str, Any]]:
     try:
-        raw = archive.read("anvil-trace.jsonl").decode("utf-8", "replace")
+        raw = archive.read("draupnir-trace.jsonl").decode("utf-8", "replace")
     except KeyError as error:
-        raise ValueError(f"{archive.filename} has no anvil-trace.jsonl") from error
+        raise ValueError(f"{archive.filename} has no draupnir-trace.jsonl") from error
     for line_number, line in enumerate(raw.splitlines(), 1):
         if not line.strip():
             continue
@@ -63,7 +63,7 @@ def _trace_rows(archive: zipfile.ZipFile) -> Iterable[dict[str, Any]]:
             value = json.loads(line)
         except json.JSONDecodeError as error:
             raise ValueError(
-                f"{archive.filename}:anvil-trace.jsonl:{line_number}: {error.msg}"
+                f"{archive.filename}:draupnir-trace.jsonl:{line_number}: {error.msg}"
             ) from error
         if isinstance(value, dict):
             yield value

@@ -26,10 +26,10 @@ const MCP_STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
 /// Budget for `tools/call`. Kept generous because MCP tools can run
 /// long-lived work server-side (e.g. Mjolnir's `code_agent`, which the
 /// server itself may hold open for up to 240s). See
-/// https://github.com/BrokkAi/anvil/issues/292 for the fuller adaptive-timeout
+/// https://github.com/BrokkAi/draupnir/issues/292 for the fuller adaptive-timeout
 /// design this is standing in for.
 const MCP_TOOL_CALL_TIMEOUT: Duration = Duration::from_secs(300);
-const MCP_TOOL_CALL_TIMEOUT_ENV: &str = "ANVIL_MCP_TOOL_CALL_TIMEOUT_SECS";
+const MCP_TOOL_CALL_TIMEOUT_ENV: &str = "DRAUPNIR_MCP_TOOL_CALL_TIMEOUT_SECS";
 static CONFIGURED_MCP_TOOL_CALL_TIMEOUT: OnceLock<Duration> = OnceLock::new();
 
 fn ordinary_mcp_tool_call_timeout() -> Duration {
@@ -43,7 +43,7 @@ fn ordinary_mcp_tool_call_timeout() -> Duration {
                 tracing::warn!(
                     value = %raw,
                     default_seconds = MCP_TOOL_CALL_TIMEOUT.as_secs(),
-                    "ignoring invalid ANVIL_MCP_TOOL_CALL_TIMEOUT_SECS"
+                    "ignoring invalid DRAUPNIR_MCP_TOOL_CALL_TIMEOUT_SECS"
                 );
                 MCP_TOOL_CALL_TIMEOUT
             }
@@ -318,7 +318,7 @@ fn is_default_or_managed_bifrost_command(command: &str) -> bool {
     command == "bifrost" || command == managed_bifrost_command()
 }
 
-/// Normalises a stored Bifrost server entry so it always uses Anvil's managed
+/// Normalises a stored Bifrost server entry so it always uses Draupnir's managed
 /// local binary with the correct line framing.
 ///
 /// The function matches on name, the current default args, and the default
@@ -328,7 +328,7 @@ fn is_default_or_managed_bifrost_command(command: &str) -> bool {
 /// framing override) is intentionally discarded — Bifrost's wire protocol
 /// requires line framing and the command must point to the pinned managed
 /// binary.
-/// Argument sets that earlier Anvil versions shipped as the managed Bifrost
+/// Argument sets that earlier Draupnir versions shipped as the managed Bifrost
 /// default. A persisted entry still carrying one of these (with the managed
 /// command) is an unmodified prior default, so it follows the current default
 /// on load. Custom toolset combinations are deliberately not included.
@@ -2623,7 +2623,7 @@ mod tests {
     /// 300s (long-running server-side tools like Mjolnir's `code_agent` can
     /// run up to 240s), while setup RPCs (initialize, `tools/list`, SSE
     /// endpoint discovery) keep the original 60s. See
-    /// https://github.com/BrokkAi/anvil/issues/292 for the fuller design.
+    /// https://github.com/BrokkAi/draupnir/issues/292 for the fuller design.
     #[test]
     fn startup_and_tool_call_timeouts_have_expected_budgets() {
         assert_eq!(MCP_STARTUP_TIMEOUT, Duration::from_secs(60));
@@ -2999,7 +2999,7 @@ mod tests {
                 assert_eq!(
                     tool.annotations.read_only_hint,
                     Some(true),
-                    "bifrost advertises '{}' as {kind:?} in Anvil, but MCP readOnlyHint is {:?}",
+                    "bifrost advertises '{}' as {kind:?} in Draupnir, but MCP readOnlyHint is {:?}",
                     tool.name,
                     tool.annotations.read_only_hint
                 );
@@ -3034,7 +3034,7 @@ mod tests {
 
     /// SlopCop opts into its dedicated Bifrost surface. Advertisement and
     /// permission classification are independent: the MCP surface supplies
-    /// the definitions, while Anvil's global metadata makes the reporters
+    /// the definitions, while Draupnir's global metadata makes the reporters
     /// callable in read-only sessions.
     #[tokio::test]
     async fn slopcop_surface_is_read_only_permission_compatible() {
@@ -3094,7 +3094,7 @@ mod tests {
         let env_log = tmp.path().join("env.log");
         let script = format!(
             r#"#!/bin/sh
-printf '%s\n' "$ANVIL_MCP_TEST_TOKEN" > "{}"
+printf '%s\n' "$DRAUPNIR_MCP_TEST_TOKEN" > "{}"
 while IFS= read -r line; do
   case "$line" in
     *'"method":"initialize"'* )
@@ -3125,7 +3125,7 @@ done
             command: script_path.display().to_string(),
             args: Vec::new(),
             env: vec![McpEnvVar {
-                name: "ANVIL_MCP_TEST_TOKEN".to_string(),
+                name: "DRAUPNIR_MCP_TEST_TOKEN".to_string(),
                 value: "expected-token".to_string(),
             }],
             framing: McpFraming::Line,

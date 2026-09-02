@@ -62,16 +62,16 @@ fn run(kind: EditorKind, args: BuildArgs) -> Result<()> {
     let root = workspace_root();
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let status = Command::new(&cargo)
-        .args(["build", "--release", "--bin", "anvil"])
+        .args(["build", "--release", "--bin", "draupnir"])
         .current_dir(root)
         .status()
         .context("failed to invoke cargo build")?;
     ensure!(
         status.success(),
-        "cargo build --release --bin anvil failed (status: {status})"
+        "cargo build --release --bin draupnir failed (status: {status})"
     );
 
-    let binary = root.join("target/release/anvil");
+    let binary = root.join("target/release/draupnir");
     ensure!(
         binary.exists(),
         "expected binary not found at {}",

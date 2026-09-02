@@ -1,6 +1,6 @@
 ---
 title: Permissions and Sandboxing
-description: Distinguish Anvil permission policy, OS sandboxing, Wasm isolation, and escalation.
+description: Distinguish Draupnir permission policy, OS sandboxing, Wasm isolation, and escalation.
 ---
 
 Permission mode decides whether a tool call is allowed or requires approval. Sandbox mode decides where and with what operating-system access certain work executes. They are separate controls.
@@ -25,7 +25,7 @@ The ACP client owns the live Permission selector. Remembered **Always allow** de
 
 Shell commands request explicit outside-sandbox escalation with `sandbox_permissions: "require_escalated"`. In interactive modes this produces a **Run outside sandbox** choice. An outside-sandbox approval is never stored as an Always allow rule.
 
-The automatic permission classifier is an internal utility call. Configure its model, shared with semantic-search reranking, using `--utility-model <provider>::<model>` or `ANVIL_UTILITY_MODEL`. If unset, it uses the active session model at low reasoning effort; an explicit utility model uses that provider's default effort. History compaction is separate and always remains on the session model at low effort so it can reuse the conversation prefix cache.
+The automatic permission classifier is an internal utility call. Configure its model, shared with semantic-search reranking, using `--utility-model <provider>::<model>` or `DRAUPNIR_UTILITY_MODEL`. If unset, it uses the active session model at low reasoning effort; an explicit utility model uses that provider's default effort. History compaction is separate and always remains on the session model at low effort so it can reuse the conversation prefix cache.
 
 ## Sandbox Strategies
 
@@ -35,7 +35,7 @@ The automatic permission classifier is an internal utility call. Configure its m
 | `wasm` | Selected parsing, search, instruction, and archive work runs in the embedded Wasmtime component. | Permission-gated, but **not** contained by Seatbelt or Bubblewrap. |
 | `off` | Native in-process | Permission-gated only. |
 
-Anvil defaults to `os` when the platform sandbox is available. Otherwise a default-feature build can use the Wasm fallback. A build made with `--no-default-features`, or a process started with `--no-wasm-sandbox`, cannot use that fallback.
+Draupnir defaults to `os` when the platform sandbox is available. Otherwise a default-feature build can use the Wasm fallback. A build made with `--no-default-features`, or a process started with `--no-wasm-sandbox`, cannot use that fallback.
 
 ```text
 /setup sandbox default

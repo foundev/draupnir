@@ -226,7 +226,7 @@ pub fn default_headers() -> Result<reqwest::header::HeaderMap> {
     let mut headers = HeaderMap::new();
     headers.insert(
         reqwest::header::USER_AGENT,
-        HeaderValue::from_str(concat!("anvil/", env!("CARGO_PKG_VERSION")))?,
+        HeaderValue::from_str(concat!("draupnir/", env!("CARGO_PKG_VERSION")))?,
     );
     headers.insert(
         HeaderName::from_static("x-msh-platform"),
@@ -288,7 +288,7 @@ fn write_credentials_atomic(path: &Path, credentials: &KimiCredentials) -> Resul
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or("kimi-code.json");
-    let tmp = path.with_file_name(format!(".{file_name}.anvil-{}.tmp", std::process::id()));
+    let tmp = path.with_file_name(format!(".{file_name}.draupnir-{}.tmp", std::process::id()));
     std::fs::write(&tmp, bytes)
         .with_context(|| format!("writing temporary Kimi credentials {}", tmp.display()))?;
     set_private_permissions(&tmp)?;

@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::sync::Mutex;
 use std::time::Duration;
-const TRACE_JSONL_ENV: &str = "ANVIL_TRACE_JSONL";
+const TRACE_JSONL_ENV: &str = "DRAUPNIR_TRACE_JSONL";
 static TRACE_WRITE_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Clone)]

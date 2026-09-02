@@ -93,8 +93,8 @@ class ExtractArchiveCorpusTest(unittest.TestCase):
                 )
             )
             with zipfile.ZipFile(archive_path, "w") as archive:
-                archive.writestr("anvil-stderr.txt", telemetry)
-                archive.writestr("anvil-trace.jsonl", trace)
+                archive.writestr("draupnir-stderr.txt", telemetry)
+                archive.writestr("draupnir-trace.jsonl", trace)
                 archive.writestr(
                     "result.json",
                     json.dumps({"taskId": "task-1", "inputTokens": 123}),

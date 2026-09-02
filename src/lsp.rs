@@ -388,7 +388,7 @@ impl LspClient {
         let root_uri = file_uri(&self.root);
         let params = json!({
             "processId": std::process::id(),
-            "clientInfo": {"name":"anvil", "version": env!("CARGO_PKG_VERSION")},
+            "clientInfo": {"name":"draupnir", "version": env!("CARGO_PKG_VERSION")},
             "rootUri": root_uri,
             "rootPath": self.root,
             "workspaceFolders": [{"uri": root_uri, "name": self.root.file_name().and_then(|n| n.to_str()).unwrap_or("workspace")}],

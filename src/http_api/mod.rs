@@ -1,4 +1,4 @@
-//! HTTP daemon mode (`anvil serve`) exposing the Anvil runtime as a
+//! HTTP daemon mode (`draupnir serve`) exposing the Draupnir runtime as a
 //! versioned REST API (#317).
 //!
 //! The daemon serves the same `SessionStore` used by the ACP adapter, so
@@ -74,14 +74,14 @@ pub(crate) struct ServeArgs {
 
     /// Port to bind. `0` picks an ephemeral port; the bound address is
     /// reported on the stdout `serve.ready` line either way.
-    /// The default, 26845, spells ANVIL on a phone keypad.
+    /// The default, 26845, spells DRAUPNIR on a phone keypad.
     #[arg(long, default_value_t = 26845)]
     pub(crate) port: u16,
 
     /// Bearer token required on every `/v1` endpoint (`Authorization:
     /// Bearer <token>`). `/health` stays open for liveness checks.
     /// Required to bind a non-loopback address.
-    #[arg(long, env = "ANVIL_HTTP_TOKEN", hide_env_values = true)]
+    #[arg(long, env = "DRAUPNIR_HTTP_TOKEN", hide_env_values = true)]
     pub(crate) auth_token: Option<String>,
 
     /// Read the bearer token from a file (surrounding whitespace trimmed).
@@ -141,7 +141,7 @@ pub(crate) async fn serve(
         bail!(
             "refusing to bind non-loopback address {ip} without authentication: the HTTP API \
              exposes model-driven filesystem and shell tooling. Pass --auth-token, \
-             --auth-token-file, or --generate-auth-token (or set ANVIL_HTTP_TOKEN) to enable \
+             --auth-token-file, or --generate-auth-token (or set DRAUPNIR_HTTP_TOKEN) to enable \
              authenticated network access."
         );
     }
@@ -199,7 +199,7 @@ pub(crate) async fn serve(
         .await
         .with_context(|| format!("failed to bind {ip}:{}", args.port))?;
     let addr = listener.local_addr()?;
-    tracing::info!("anvil serve listening on http://{addr}");
+    tracing::info!("draupnir serve listening on http://{addr}");
 
     // The single intentional stdout line: machine-readable readiness with
     // the resolved address (required when --port 0 picks an ephemeral port).
@@ -622,8 +622,8 @@ struct CreateSessionRequest {
     cwd: String,
     #[serde(default)]
     additional_directories: Vec<String>,
-    /// Additional per-session MCP servers, additive to Anvil's canonical
-    /// Bifrost setup. Uses Anvil's internal MCP server config shape.
+    /// Additional per-session MCP servers, additive to Draupnir's canonical
+    /// Bifrost setup. Uses Draupnir's internal MCP server config shape.
     #[serde(default)]
     mcp_servers: Vec<McpServerConfig>,
     #[serde(flatten)]
@@ -974,7 +974,7 @@ async fn health(State(state): State<ApiState>) -> Json<Value> {
     let models_discovered = state.sessions.available_model_metadata().await.len();
     Json(json!({
         "status": "ok",
-        "name": "anvil",
+        "name": "draupnir",
         "version": env!("CARGO_PKG_VERSION"),
         "models_discovered": models_discovered,
     }))

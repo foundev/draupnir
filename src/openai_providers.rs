@@ -307,7 +307,7 @@ mod tests {
     use std::process::Command;
     use std::sync::Mutex;
 
-    const ENV_LOOKUP_CHILD: &str = "ANVIL_OPENAI_PROVIDER_ENV_LOOKUP_CHILD";
+    const ENV_LOOKUP_CHILD: &str = "DRAUPNIR_OPENAI_PROVIDER_ENV_LOOKUP_CHILD";
 
     fn chat_request(model: &str) -> StreamChatRequest {
         StreamChatRequest {

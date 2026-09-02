@@ -61,7 +61,7 @@ const MAX_AUTH_RESPONSE_BYTES: usize = 256 * 1024;
 const MAX_DEVICE_INTERVAL_SECS: u64 = 60;
 
 /// The device authorization issued by OpenAI is valid for 15 minutes. Keep
-/// this in lockstep with Codex CLI so headless Anvil logins have the same
+/// this in lockstep with Codex CLI so headless Draupnir logins have the same
 /// completion window.
 const DEVICE_AUTH_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 
@@ -523,10 +523,10 @@ fn loopback_capture_code(port: u16, expected_state: String, timeout: Duration) -
             let url = req.url().to_string();
             let result = parse_callback_url(&url, &expected_state);
             let body = match &result {
-                Ok(_) => "Sign-in complete. You can close this tab and return to Anvil.",
+                Ok(_) => "Sign-in complete. You can close this tab and return to Draupnir.",
                 Err(e) => {
                     tracing::warn!("codex browser callback rejected: {e:#}");
-                    "Sign-in failed. Check the Anvil console for details."
+                    "Sign-in failed. Check the Draupnir console for details."
                 }
             };
             let _ = req.respond(tiny_http::Response::from_string(body));

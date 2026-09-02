@@ -22,13 +22,13 @@ pub(super) const DEFAULT_TIMEOUT_SECONDS: u64 = 120;
 /// semantics replayed traces depend on.
 pub(super) const MIN_TIMEOUT_SECONDS: u64 = 10;
 /// Ceiling for every timeout, whichever field requested it. Deployments can
-/// lower it via `ANVIL_SHELL_TIMEOUT_CAP_SECONDS`; the model is never told
+/// lower it via `DRAUPNIR_SHELL_TIMEOUT_CAP_SECONDS`; the model is never told
 /// about that override, it just sees the clamp notice if one fires.
 pub(super) const MAX_TIMEOUT_SECONDS: u64 = 3600;
 /// Deployment-level override for [`MAX_TIMEOUT_SECONDS`]. Read from the
 /// agent's own environment (not the sandboxed child's), so a command cannot
 /// widen its own budget by exporting this.
-const TIMEOUT_CAP_ENV: &str = "ANVIL_SHELL_TIMEOUT_CAP_SECONDS";
+const TIMEOUT_CAP_ENV: &str = "DRAUPNIR_SHELL_TIMEOUT_CAP_SECONDS";
 
 /// Where raw captures land when the minimizer rewrites a command's output,
 /// relative to the session cwd. Must stay under the session cwd so the
@@ -417,7 +417,7 @@ fn format_shell_tool_result(
 
 /// Post-capture output minimizer for one session's `run_shell_command`.
 ///
-/// Wraps the vendored oh-my-pi minimizer (`anvil_minimizer`): after the child
+/// Wraps the vendored oh-my-pi minimizer (`draupnir_minimizer`): after the child
 /// exits, output of well-known commands (git, cargo, pytest, npm, ...) is
 /// condensed with the exit code as an input, and the raw capture is preserved
 /// under [`SPILL_DIR_RELATIVE`] so minimization never loses information. The
@@ -425,7 +425,7 @@ fn format_shell_tool_result(
 /// and converts filter panics to passthrough, so it can only ever shrink
 /// well-understood output.
 pub(crate) struct ShellMinimizer {
-    config: anvil_minimizer::MinimizerConfig,
+    config: draupnir_minimizer::MinimizerConfig,
     /// `<session cwd>/.brokk/shell-output`. Rooted at the session cwd, not a
     /// per-command `directory` override -- see [`SPILL_DIR_RELATIVE`].
     spill_dir: PathBuf,
@@ -434,7 +434,7 @@ pub(crate) struct ShellMinimizer {
 impl ShellMinimizer {
     pub(crate) fn new(session_cwd: &Path) -> Self {
         Self {
-            config: anvil_minimizer::MinimizerConfig {
+            config: draupnir_minimizer::MinimizerConfig {
                 enabled: true,
                 ..Default::default()
             },
@@ -462,7 +462,7 @@ impl ShellMinimizer {
         } else {
             Cow::Owned(format!("{stdout}\n{stderr}"))
         };
-        let out = anvil_minimizer::apply(command, &captured, exit_code, &self.config);
+        let out = draupnir_minimizer::apply(command, &captured, exit_code, &self.config);
         if !out.changed {
             return None;
         }
@@ -508,7 +508,7 @@ fn spill_original(spill_dir: &Path, original: &str) -> Option<String> {
 }
 
 /// `{unix_secs}-{pid}-{seq}`: `seq` disambiguates within a process, `pid`
-/// across concurrent anvil processes sharing a workspace, and the timestamp
+/// across concurrent draupnir processes sharing a workspace, and the timestamp
 /// guards pid reuse across restarts while keeping age-based GC legible.
 fn next_spill_file_name() -> String {
     static SEQ: AtomicU64 = AtomicU64::new(0);
@@ -548,7 +548,7 @@ pub(crate) fn cleanup_stale_shell_outputs(session_cwd: &Path) {
 
 /// Effective ceiling on a shell timeout, in seconds.
 ///
-/// [`MAX_TIMEOUT_SECONDS`] unless `ANVIL_SHELL_TIMEOUT_CAP_SECONDS` names a
+/// [`MAX_TIMEOUT_SECONDS`] unless `DRAUPNIR_SHELL_TIMEOUT_CAP_SECONDS` names a
 /// positive integer. An absent, empty, zero, or unparseable value falls back
 /// to the default rather than failing the call: a mistyped deployment knob
 /// must not break every shell command.
@@ -564,7 +564,7 @@ fn parse_timeout_cap(raw: Option<&str>) -> u64 {
 
 /// Re-exec the wrapped command inside a fresh, empty network namespace so an
 /// offline evaluation cannot reach the network. Linux only; the caller
-/// rejects `ANVIL_OFFLINE_SHELL` on other platforms.
+/// rejects `DRAUPNIR_OFFLINE_SHELL` on other platforms.
 #[cfg(target_os = "linux")]
 fn offline_shell_argv(argv: &[String]) -> Vec<String> {
     let mut isolated = Vec::with_capacity(argv.len() + 3);
@@ -769,12 +769,12 @@ pub async fn run_shell_command_with_timeout(
     #[cfg(not(unix))]
     let sandbox_path = std::env::var_os("PATH").unwrap_or_default();
 
-    let offline_shell = std::env::var_os("ANVIL_OFFLINE_SHELL").is_some();
+    let offline_shell = std::env::var_os("DRAUPNIR_OFFLINE_SHELL").is_some();
     #[cfg(not(target_os = "linux"))]
     if offline_shell {
         return ToolResult {
             status: ToolStatus::InternalError,
-            output: "ANVIL_OFFLINE_SHELL is supported only on Linux".to_string(),
+            output: "DRAUPNIR_OFFLINE_SHELL is supported only on Linux".to_string(),
         };
     }
     #[cfg(target_os = "linux")]
@@ -1551,13 +1551,13 @@ mod timeout_tests {
     use super::*;
     use std::sync::Mutex;
 
-    /// Serializes tests that mutate `ANVIL_SHELL_TIMEOUT_CAP_SECONDS`. Every
+    /// Serializes tests that mutate `DRAUPNIR_SHELL_TIMEOUT_CAP_SECONDS`. Every
     /// test here sets the var explicitly (empty string == "unset, use the
     /// default cap") so an ambient value in the developer's environment
     /// cannot change the expected numbers either.
     static CAP_ENV_LOCK: Mutex<()> = Mutex::new(());
 
-    /// Sets `ANVIL_SHELL_TIMEOUT_CAP_SECONDS` and removes it on drop. Pair
+    /// Sets `DRAUPNIR_SHELL_TIMEOUT_CAP_SECONDS` and removes it on drop. Pair
     /// with `CAP_ENV_LOCK`; the guard must be dropped before the lock.
     struct CapEnvGuard;
 

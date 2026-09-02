@@ -120,7 +120,7 @@ use crate::usage_report::{
 };
 
 /// Stable ids for ACP `SessionConfigOption` selectors. These are live
-/// session inputs from the client, not Anvil setup preferences.
+/// session inputs from the client, not Draupnir setup preferences.
 pub(crate) const PERMISSION_CONFIG_ID: &str = "permission_mode";
 pub(crate) const BEHAVIOR_CONFIG_ID: &str = "behavior_mode";
 const SUPPORTED_ACP_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion::V1;
@@ -162,7 +162,7 @@ fn invalid_lifecycle_cwd_error(method: &str, cwd: &Path) -> agent_client_protoco
     }))
 }
 
-/// Build the protocol error returned when a request names a session Anvil
+/// Build the protocol error returned when a request names a session Draupnir
 /// does not know. Shared by the `session/prompt` sites (cold-miss,
 /// closed-mid-request, registry rebuild) and the `session/load` /
 /// `session/resume` lifecycle handlers so the wording stays identical and
@@ -178,7 +178,7 @@ fn unknown_session_error(session_id: &str) -> agent_client_protocol::Error {
 /// match the cwd an existing in-memory session was created/loaded under. ACP
 /// treats `cwd` as the session working directory; silently moving a warm
 /// session to a different root would change project instructions, skills,
-/// permission scope, and sandbox assumptions, so Anvil rejects the move.
+/// permission scope, and sandbox assumptions, so Draupnir rejects the move.
 fn lifecycle_cwd_mismatch_error(
     method: &str,
     session_cwd: &Path,
@@ -195,7 +195,7 @@ fn lifecycle_cwd_mismatch_error(
 }
 
 /// Build the protocol error returned when a lifecycle request references an
-/// MCP server transport Anvil does not support. Anvil advertises
+/// MCP server transport Draupnir does not support. Draupnir advertises
 /// `mcpCapabilities` with http/sse disabled, so an HTTP/SSE server is rejected
 /// rather than silently skipped (which would leave the session looking
 /// configured while the requested tools were missing).
@@ -205,7 +205,7 @@ fn unsupported_mcp_transport_error(
 ) -> agent_client_protocol::Error {
     agent_client_protocol::Error::invalid_params().data(serde_json::json!({
         "reason": format!(
-            "{method} MCP server '{}' uses the unsupported '{}' transport; Anvil only \
+            "{method} MCP server '{}' uses the unsupported '{}' transport; Draupnir only \
              supports stdio MCP servers",
             err.server, err.transport
         ),
@@ -1170,7 +1170,7 @@ const SESSION_LIST_PAGE_SIZE: usize = 50;
 /// Prefix for our opaque `session/list` cursor token. Namespacing the token
 /// lets us reject foreign or hand-crafted cursors instead of silently treating
 /// them as offset 0, satisfying ACP's "invalid cursor SHOULD error" guidance.
-const SESSION_LIST_CURSOR_PREFIX: &str = "anvil:";
+const SESSION_LIST_CURSOR_PREFIX: &str = "draupnir:";
 
 /// Fingerprint of the list context (the `cwd` filter) a `session/list` cursor
 /// was issued for. Cursors are offsets into a specific ordered list; binding
@@ -1198,7 +1198,7 @@ fn encode_session_list_cursor(context_tag: u64, offset: usize) -> String {
 }
 
 /// Decode an opaque `session/list` cursor token back to its page offset.
-/// Returns `None` for any cursor Anvil did not issue for this same list
+/// Returns `None` for any cursor Draupnir did not issue for this same list
 /// context -- foreign, malformed, or minted against a different `cwd` filter --
 /// so the handler can surface an invalid-params error rather than silently
 /// restarting at 0 or paging the wrong list.
@@ -1485,12 +1485,12 @@ fn render_session_start_setup_notice(
     }
 
     if !first_run_seen {
-        let mut out = String::from("Anvil found a working model setup and is ready to use.\n\n");
+        let mut out = String::from("Draupnir found a working model setup and is ready to use.\n\n");
         out.push_str("Run `/setup` anytime to change or repair model setup.");
         return out;
     }
 
-    "Anvil is ready. Run `/setup` anytime to change or repair model setup.".to_string()
+    "Draupnir is ready. Run `/setup` anytime to change or repair model setup.".to_string()
 }
 
 fn source_count(catalog: &[ModelMetadata], source: &str) -> usize {
@@ -1540,7 +1540,7 @@ fn render_setup_home(session: &Session, catalog: &[ModelMetadata]) -> String {
 
 fn render_setup_home_from_snapshot(snap: &SessionSnapshot, catalog: &[ModelMetadata]) -> String {
     let mut out =
-        String::from("No model is ready yet. Start setup before asking Anvil to work.\n\n");
+        String::from("No model is ready yet. Start setup before asking Draupnir to work.\n\n");
     out.push_str(&render_setup_home_for_model(&snap.model, catalog));
     out
 }
@@ -1579,7 +1579,7 @@ fn render_setup_home_for_model(model: &str, catalog: &[ModelMetadata]) -> String
     };
 
     format!(
-        "**Anvil setup**\n\n\
+        "**Draupnir setup**\n\n\
          {ready}\n\n\
          Pick one:\n{choices}\n\n\
          Provider status (global):\n\
@@ -1752,13 +1752,13 @@ pub fn agent_component(
                             ),
                     );
 
-                // Anvil requires no login of its own, but the ACP registry
+                // Draupnir requires no login of its own, but the ACP registry
                 // (AUTHENTICATION.md) rejects agents whose initialize response
                 // advertises no auth methods, so declare an explicit no-auth
                 // method rather than an empty list.
                 let auth_methods = vec![AuthMethod::Agent(
                     AuthMethodAgent::new("none", "No authentication required").description(
-                        "Anvil needs no login; model providers are configured per \
+                        "Draupnir needs no login; model providers are configured per \
                          session (/setup) or through environment variables.",
                     ),
                 )];
@@ -1785,7 +1785,7 @@ pub fn agent_component(
                     responder.respond_with_error(
                         agent_client_protocol::Error::invalid_params().data(serde_json::json!({
                             "reason": format!(
-                                "unknown authMethod id {:?}; Anvil advertises only \"none\"",
+                                "unknown authMethod id {:?}; Draupnir advertises only \"none\"",
                                 req.method_id.0
                             ),
                         })),
@@ -3413,7 +3413,7 @@ pub fn agent_component(
                 };
 
                 if sessions_mode.set_mode(&session_id, mode).await {
-                        // Config options supersede legacy modes, but Anvil
+                        // Config options supersede legacy modes, but Draupnir
                         // exposes both. Keep clients on the config-options
                         // surface in sync by emitting a config_option_update
                         // with the complete current set after a mode change
@@ -3584,7 +3584,7 @@ fn extract_prompt_text(blocks: &[ContentBlock]) -> String {
 /// forwarded as either data URLs (for inline base64) or URLs (when the
 /// client supplied a URI without inline bytes).
 ///
-/// ACP requires baseline agents to support resource links, and Anvil
+/// ACP requires baseline agents to support resource links, and Draupnir
 /// advertises `embeddedContext`, so both are handled here rather than
 /// silently dropped: resource links become explicit textual references and
 /// embedded resources become inline text (or an image part for image
@@ -3614,7 +3614,7 @@ fn extract_prompt_parts(blocks: &[ContentBlock]) -> Vec<ChatContentPart> {
 /// Render an ACP `ResourceLink` as textual context for the model.
 ///
 /// ACP baseline prompt support requires agents to accept resource links;
-/// Anvil does not resolve the referenced bytes (that would require client
+/// Draupnir does not resolve the referenced bytes (that would require client
 /// filesystem round-trips), so it surfaces the reference -- name, uri, and
 /// any human-readable hints -- as text. This keeps the link visible to the
 /// model and ensures a resource-link-only prompt is not mistaken for an
@@ -4967,7 +4967,7 @@ fn build_system_prompt(
     }
     cwd_context.push('\n');
 
-    // The identity line is intentionally general-purpose: Anvil is often
+    // The identity line is intentionally general-purpose: Draupnir is often
     // driven by hosts (e.g. `mj`) that mix coding and non-coding prompts,
     // and "AI coding assistant" wording was enough for some models to
     // refuse off-topic questions. We still name software engineering as
@@ -5462,7 +5462,7 @@ async fn handle_setup_codex(
                 let prefix = if opened {
                     "Codex browser sign-in started. Waiting for the localhost callback."
                 } else {
-                    "Codex browser sign-in started, but Anvil could not open a browser automatically."
+                    "Codex browser sign-in started, but Draupnir could not open a browser automatically."
                 };
                 send_message(
                     cx,
@@ -5516,7 +5516,7 @@ fn openrouter_env_owned_explanation() -> String {
     let state = crate::openrouter_auth::CredentialState::snapshot();
     format!(
         "OpenRouter credentials are owned by the OPENROUTER_API_KEY environment \
-         variable. Anvil reads that value at startup; unset it and restart the \
+         variable. Draupnir reads that value at startup; unset it and restart the \
          server if you want `/setup openrouter key <key>` to manage credentials.\n\n\
          Credential state:\n\
          - active_source: `{}`\n\
@@ -5915,7 +5915,7 @@ async fn handle_mcp(prompt_text: &str, sessions: &SessionStore, session_id: &str
             })
         }
         "reset" => crate::setup_state::remember_mcp_servers(crate::mcp::default_servers())
-            .map(|_| "MCP servers reset to Anvil defaults.".to_string()),
+            .map(|_| "MCP servers reset to Draupnir defaults.".to_string()),
         "help" => return mcp_usage(),
         _ => return format!("Unknown MCP command `{command}`.\n\n{}", mcp_usage()),
     };
@@ -5992,7 +5992,7 @@ fn mcp_usage() -> String {
      `content-length` is the standard MCP stdio framing and is the default for new \
      servers. Use `line` only for NDJSON-speaking servers. Use shell-style quoting \
      for commands or args that contain spaces, and use `{{cwd}}` in args to pass the \
-     current workspace root. Bifrost is preinstalled as Anvil's managed local \
+     current workspace root. Bifrost is preinstalled as Draupnir's managed local \
      binary with the equivalent args `{bifrost_args}`."
     )
 }
@@ -6010,9 +6010,9 @@ fn shell_quote(value: &str) -> String {
 }
 
 /// Handle the `/plugin` slash command: list installed plugins (Claude
-/// Code + Anvil-native) and manage Anvil-native installs. Claude Code
+/// Code + Draupnir-native) and manage Draupnir-native installs. Claude Code
 /// installs are read-only from here except for enable/disable, which is
-/// stored as an Anvil-side override so Claude Code's own settings are
+/// stored as a Draupnir-side override so Claude Code's own settings are
 /// never touched.
 struct PluginCommandOutcome {
     report: String,
@@ -6554,7 +6554,7 @@ fn plugin_set_enabled(cwd: &Path, name: &str, enabled: bool) -> Result<String, S
         crate::plugins::set_claude_override(&key, enabled)
             .map_err(|e| format!("failed to update plugin registry: {e:#}"))?;
         return Ok(format!(
-            "Plugin `{key}` {state} for Anvil (Claude Code's own setting is untouched)."
+            "Plugin `{key}` {state} for Draupnir (Claude Code's own setting is untouched)."
         ));
     }
     Err(format!("no plugin named `{name}` is installed"))
@@ -6749,9 +6749,9 @@ fn plugin_usage() -> String {
      PostToolUse, UserPromptSubmit), and MCP servers in the Claude Code plugin \
      format (`.claude-plugin/plugin.json`). Plugins installed with \
      `claude plugin install` are discovered automatically; `/plugin add` installs \
-     into Anvil's own config directory. Adding a marketplace repository lists its \
+     into Draupnir's own config directory. Adding a marketplace repository lists its \
      plugins; pass a second argument to pick one. Enable/disable of Claude Code \
-     plugins is stored on the Anvil side and never modifies Claude Code's settings."
+     plugins is stored on the Draupnir side and never modifies Claude Code's settings."
         .to_string()
 }
 
@@ -6787,8 +6787,8 @@ async fn handle_idle_timeout(
                 "LLM idle timeout defaults: first-progress {default_secs}s, \
                  mid-stream stall {default_stall_secs}s.\n\
                  Use `/idle-timeout <seconds>` to override both phases for this session only, \
-                 or restart with `--llm-idle-timeout-secs` / `ANVIL_LLM_IDLE_TIMEOUT_SECS` and \
-                 `--llm-stall-timeout-secs` / `ANVIL_LLM_STALL_TIMEOUT_SECS` to change defaults."
+                 or restart with `--llm-idle-timeout-secs` / `DRAUPNIR_LLM_IDLE_TIMEOUT_SECS` and \
+                 `--llm-stall-timeout-secs` / `DRAUPNIR_LLM_STALL_TIMEOUT_SECS` to change defaults."
             ),
         },
         IdleTimeoutAction::Clear => {
@@ -7142,7 +7142,7 @@ fn build_codex_browser_login_elicitation_request(
     );
     CreateElicitationRequest::new(
         mode,
-        "Open this link to sign in to ChatGPT. The browser must be able to reach Anvil on localhost; cancel the prompt to stop waiting without changing credentials.".to_string(),
+        "Open this link to sign in to ChatGPT. The browser must be able to reach Draupnir on localhost; cancel the prompt to stop waiting without changing credentials.".to_string(),
     )
 }
 
@@ -7320,7 +7320,7 @@ async fn run_setup_bedrock_login_elicitation(
         session_id,
         "AWS Bedrock",
         "Bearer token",
-        "Paste your AWS Bedrock bearer token. It will be stored in Anvil's protected secrets file.",
+        "Paste your AWS Bedrock bearer token. It will be stored in Draupnir's protected secrets file.",
     );
     let message = match request_setup_secret(cx, cancel, request).await {
         Ok(Some(key)) => {
@@ -7361,7 +7361,7 @@ async fn run_setup_deepseek_login_elicitation(
         session_id,
         "DeepSeek",
         "API key",
-        "Paste your key from https://platform.deepseek.com. It will be stored in Anvil's protected secrets file.",
+        "Paste your key from https://platform.deepseek.com. It will be stored in Draupnir's protected secrets file.",
     );
     let message = match request_setup_secret(cx, cancel, request).await {
         Ok(Some(key)) => {
@@ -7734,18 +7734,18 @@ fn build_setup_home_elicitation_request(session_id: &str) -> CreateElicitationRe
         .collect::<Vec<_>>();
 
     let field = StringPropertySchema::new()
-        .title("Set up Anvil")
+        .title("Set up Draupnir")
         .description("Pick how to get a model ready, or open advanced settings.")
         .one_of(options)
         .default_value(SetupHomeRoute::Choose.value());
 
     let schema = ElicitationSchema::new()
-        .title("Anvil setup")
+        .title("Draupnir setup")
         .property("choice", field, true);
 
     let mode =
         ElicitationFormMode::new(ElicitationSessionScope::new(session_id.to_string()), schema);
-    CreateElicitationRequest::new(mode, "How do you want to set up Anvil?")
+    CreateElicitationRequest::new(mode, "How do you want to set up Draupnir?")
 }
 
 /// Bare `/setup` as the single interactive entry point. Presents the home menu
@@ -8232,21 +8232,21 @@ async fn handle_setup_choose(
             Ok(models) => models,
             Err(e) => {
                 return format!(
-                    "Anvil could not find a working model yet: {e}\n\n\
+                    "Draupnir could not find a working model yet: {e}\n\n\
                  Try `/setup codex` if you use Codex, or `/setup local` for free local models."
                 );
             }
         };
     let Some(model) = preferred_model(&catalog) else {
         return format!(
-            "Anvil could not find a working model yet.\n\n{}",
+            "Draupnir could not find a working model yet.\n\n{}",
             render_setup_home_for_model("", &catalog)
         );
     };
     match apply_setup_config(cx, sessions, session_id, MODEL_CONFIG_ID, &model).await {
         msg if msg.starts_with("Error:") => msg,
         _ => format!(
-            "Current-session model set to `{model}`. Anvil is ready. Run `/setup` anytime to change or repair setup."
+            "Current-session model set to `{model}`. Draupnir is ready. Run `/setup` anytime to change or repair setup."
         ),
     }
 }
@@ -8283,7 +8283,7 @@ async fn handle_setup_local(
                     let local_count = source_count(&catalog, ModelSource::OLLAMA)
                         + source_count(&catalog, ModelSource::DS4);
                     if local_count > 0 {
-                        "Local models are ready. Run `/setup local use` to use them, or `/setup choose` to let Anvil pick.".to_string()
+                        "Local models are ready. Run `/setup local use` to use them, or `/setup choose` to let Draupnir pick.".to_string()
                     } else {
                         render_local_setup_help()
                     }
@@ -8301,7 +8301,7 @@ async fn handle_setup_local(
 fn render_local_setup_help() -> String {
     "Use local models\n\n\
      Scope: global provider discovery; model selection applies to the current session.\n\n\
-     Anvil automatically discovers Ollama and a running ds4-server.\n\n\
+     Draupnir automatically discovers Ollama and a running ds4-server.\n\n\
      1. Start Ollama (https://ollama.com) or ds4-server.\n\
      2. Run `/setup local refresh`.\n\
      3. Run `/setup local use`.\n\n\
@@ -8648,7 +8648,7 @@ fn render_bedrock_disconnect_success(state: crate::bedrock_auth::CredentialState
         return format!(
             "Bedrock local credential files cleared and the in-memory backend was unloaded, but \
              {env} is still set.\n\
-             Unset it and restart Anvil to fully disconnect Bedrock:\n\n  unset {env}\n\n\
+             Unset it and restart Draupnir to fully disconnect Bedrock:\n\n  unset {env}\n\n\
              If it comes back after restart, remove it from your shell profile or secrets manager."
         );
     }
@@ -8801,7 +8801,7 @@ async fn handle_setup_deepseek(
                             format!(
                                 "DeepSeek stored key cleared and the in-memory backend was \
                                  unloaded, but {env} is still set.\n\
-                                 Unset it and restart Anvil to fully disconnect DeepSeek:\n\n  \
+                                 Unset it and restart Draupnir to fully disconnect DeepSeek:\n\n  \
                                  unset {env}\n\n\
                                  If it comes back after restart, remove it from your shell \
                                  profile or secrets manager."
@@ -8894,15 +8894,15 @@ async fn handle_setup_grok(
 
 fn render_grok_setup_help() -> String {
     let status = match crate::grok_client::GrokClient::load() {
-        Ok(Some(_)) => "Anvil found a first-party Grok OAuth credential.",
-        Ok(None) => "Anvil did not find a first-party Grok OAuth credential.",
-        Err(_) => "Anvil could not read the Grok OAuth credential file.",
+        Ok(Some(_)) => "Draupnir found a first-party Grok OAuth credential.",
+        Ok(None) => "Draupnir did not find a first-party Grok OAuth credential.",
+        Err(_) => "Draupnir could not read the Grok OAuth credential file.",
     };
     format!(
         "Use Grok Build OAuth\n\n\
          Scope: global provider connection; model selection applies to the current session.\n\n\
          {status}\n\n\
-         Anvil reuses the official Grok Build CLI credential and does not accept an xAI API key.\n\n\
+         Draupnir reuses the official Grok Build CLI credential and does not accept an xAI API key.\n\n\
          1. Install Grok Build.\n\
          2. Run `grok login --oauth` in a terminal.\n\
          3. Run `/setup grok refresh`.\n\n\
@@ -8974,7 +8974,7 @@ fn render_openrouter_setup_help() -> String {
     };
     let key_help = if state.env_owns() {
         "Credentials are managed by OPENROUTER_API_KEY. Unset it and restart before using \
-         `/setup openrouter key <your key>` to save a different key through Anvil."
+         `/setup openrouter key <your key>` to save a different key through Draupnir."
             .to_string()
     } else {
         "If this client supports setup forms, run `/setup openrouter` and enter the key in the out-of-transcript field.\n\
@@ -9602,7 +9602,7 @@ async fn render_setup_advanced(sessions: &SessionStore, session_id: &str) -> Str
     let catalog = sessions.available_model_metadata().await;
     let openrouter_picks = filtered_openrouter_models(&catalog);
     let mut out = String::from(
-        "Advanced setup\n\nCurrent session (client-owned; not saved as Anvil install defaults)\n\n",
+        "Advanced setup\n\nCurrent session (client-owned; not saved as Draupnir install defaults)\n\n",
     );
     out.push_str(&format!(
         "- Selected model: `{}`\n",
@@ -10773,7 +10773,7 @@ mod tests {
         assert_eq!(extract_prompt_text(&blocks), "before\nafter");
     }
 
-    /// ACP requires baseline agents to accept resource links. Anvil surfaces
+    /// ACP requires baseline agents to accept resource links. Draupnir surfaces
     /// them as textual references so a link is never silently dropped (#150).
     #[test]
     fn extract_prompt_parts_renders_resource_link_as_text() {
@@ -10807,7 +10807,7 @@ mod tests {
         );
     }
 
-    /// Anvil advertises `embeddedContext`, so embedded text resources must
+    /// Draupnir advertises `embeddedContext`, so embedded text resources must
     /// reach prompt construction rather than being dropped (#151).
     #[test]
     fn extract_prompt_parts_inlines_embedded_text_resource() {
@@ -10965,15 +10965,15 @@ mod tests {
             });
         let meta = prompt_response_meta(Some(&result), None).expect("meta present");
         assert_eq!(
-            meta["anvil"]["structuredOutput"]["status"],
+            meta["draupnir"]["structuredOutput"]["status"],
             serde_json::Value::String("success".into())
         );
         assert_eq!(
-            meta["anvil"]["structuredOutput"]["validated_output"]["answer"],
+            meta["draupnir"]["structuredOutput"]["validated_output"]["answer"],
             "ok"
         );
         assert_eq!(
-            meta["anvil"]["structuredOutput"]["coercion_requested"],
+            meta["draupnir"]["structuredOutput"]["coercion_requested"],
             serde_json::Value::Bool(false)
         );
     }
@@ -10990,19 +10990,19 @@ mod tests {
         );
         let meta = prompt_response_meta(Some(&result), None).expect("meta present");
         assert_eq!(
-            meta["anvil"]["structuredOutput"]["status"],
+            meta["draupnir"]["structuredOutput"]["status"],
             serde_json::Value::String("coerced_success".into())
         );
         assert_eq!(
-            meta["anvil"]["structuredOutput"]["validated_output"]["answer"],
+            meta["draupnir"]["structuredOutput"]["validated_output"]["answer"],
             "one\ntwo"
         );
         assert_eq!(
-            meta["anvil"]["structuredOutput"]["coercions"][0],
+            meta["draupnir"]["structuredOutput"]["coercions"][0],
             "response.answer array -> string"
         );
         assert_eq!(
-            meta["anvil"]["structuredOutput"]["coercion_requested"],
+            meta["draupnir"]["structuredOutput"]["coercion_requested"],
             serde_json::Value::Bool(true)
         );
     }
@@ -11019,11 +11019,11 @@ mod tests {
         );
         let meta = prompt_response_meta(Some(&result), None).expect("meta present");
         assert_eq!(
-            meta["anvil"]["structuredOutput"]["status"],
+            meta["draupnir"]["structuredOutput"]["status"],
             serde_json::Value::String("validation_error".into())
         );
         assert_eq!(
-            meta["anvil"]["structuredOutput"]["coercion_requested"],
+            meta["draupnir"]["structuredOutput"]["coercion_requested"],
             serde_json::Value::Bool(true)
         );
     }
@@ -11043,31 +11043,31 @@ mod tests {
         let meta = prompt_response_meta(None, Some(&model)).expect("meta present");
 
         assert_eq!(
-            meta["anvil"]["modelSelection"]["orchestration"]["configured_model"],
+            meta["draupnir"]["modelSelection"]["orchestration"]["configured_model"],
             "openrouter::google/gemini-3.1-pro-preview"
         );
         assert_eq!(
-            meta["anvil"]["modelSelection"]["orchestration"]["resolved_provider"],
+            meta["draupnir"]["modelSelection"]["orchestration"]["resolved_provider"],
             "openrouter"
         );
         assert_eq!(
-            meta["anvil"]["modelSelection"]["orchestration"]["resolved_model"],
+            meta["draupnir"]["modelSelection"]["orchestration"]["resolved_model"],
             "google/gemini-3.1-pro-preview"
         );
         assert_eq!(
-            meta["anvil"]["modelSelection"]["orchestration"]["actual_model"],
+            meta["draupnir"]["modelSelection"]["orchestration"]["actual_model"],
             "google/gemini-3.1-pro-preview"
         );
         assert_eq!(
-            meta["anvil"]["modelSelection"]["internal_specialist"]["separate_model_selection_supported"],
+            meta["draupnir"]["modelSelection"]["internal_specialist"]["separate_model_selection_supported"],
             serde_json::Value::Bool(false)
         );
         assert_eq!(
-            meta["anvil"]["modelSelection"]["internal_specialist"]["actual_model"],
+            meta["draupnir"]["modelSelection"]["internal_specialist"]["actual_model"],
             "google/gemini-3.1-pro-preview"
         );
         assert_eq!(
-            meta["anvil"]["modelSelection"]["internal_specialist"]["selection_source"],
+            meta["draupnir"]["modelSelection"]["internal_specialist"]["selection_source"],
             "inherits_orchestration"
         );
     }
@@ -11134,7 +11134,7 @@ mod tests {
             );
             assert!(
                 !prompt.contains("create a task list"),
-                "system prompt for {mode:?} must not revive the task-list invitation (anvil has \
+                "system prompt for {mode:?} must not revive the task-list invitation (draupnir has \
                  no todo tool; it induces prose plans instead of tool calls), got: {prompt}"
             );
         }
@@ -11461,9 +11461,9 @@ mod tests {
         // No namespace prefix -> not one of ours.
         assert_eq!(parse_session_list_cursor("137", tag), None);
         // Right prefix, non-numeric tag/offset.
-        assert_eq!(parse_session_list_cursor("anvil:zz:5", tag), None);
+        assert_eq!(parse_session_list_cursor("draupnir:zz:5", tag), None);
         assert_eq!(
-            parse_session_list_cursor(&format!("anvil:{tag:x}:abc"), tag),
+            parse_session_list_cursor(&format!("draupnir:{tag:x}:abc"), tag),
             None
         );
         // Arbitrary garbage.
@@ -12346,7 +12346,7 @@ mod tests {
             "message should show the shell command to fully disconnect; got:\n{msg}"
         );
         assert!(
-            msg.contains("restart Anvil"),
+            msg.contains("restart Draupnir"),
             "message should explain restart is needed after unsetting env; got:\n{msg}"
         );
     }

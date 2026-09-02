@@ -111,7 +111,7 @@ fn goal_usage() -> String {
     "Usage: `/goal [--max-turns N] <objective>`\n\
      Example: `/goal make `cargo test` pass`\n\
      Example: `/goal --max-turns 40 migrate the config loader to serde`\n\n\
-     Anvil works autonomously across turns until the objective is verifiably met or \
+     Draupnir works autonomously across turns until the objective is verifiably met or \
      it is blocked -- there is no turn limit by default. Cancel the session to stop \
      early, or pass `--max-turns N` to set an optional ceiling."
         .to_string()
@@ -457,7 +457,7 @@ pub(crate) fn goal_failure_backoff(consecutive_failures: u32) -> Duration {
 
 /// Build the continuation prompt injected as the user message for one goal
 /// turn. Adapts Codex's `continuation.md` (objective framing + completion
-/// audit + blocked discipline) to Anvil's sentinel-based stop signal.
+/// audit + blocked discipline) to Draupnir's sentinel-based stop signal.
 pub(crate) fn build_goal_prompt(
     objective: &str,
     turn: u32,

@@ -114,7 +114,7 @@ def load_candidates(analysis_path: Path) -> list[dict]:
             task_text = bundle.read("instruction.md").decode("utf-8", errors="replace")
             events = [
                 json.loads(line)
-                for line in bundle.read("anvil-trace.jsonl").splitlines()
+                for line in bundle.read("draupnir-trace.jsonl").splitlines()
                 if line.strip()
             ]
 

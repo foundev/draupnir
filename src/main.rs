@@ -65,7 +65,7 @@ mod workspace_delta;
 use crate::llm_client::LlmBackend;
 use crate::multi_backend::{BackendRegistration, MultiBackend};
 
-/// Anvil -- Rust-based Agent Client Protocol (ACP) server with
+/// Draupnir -- Rust-based Agent Client Protocol (ACP) server with
 /// first-run setup and zero-config auto-discovery: at startup we read
 /// `~/.codex/auth.json` for Codex credentials, probe
 /// `http://localhost:11434/v1/models` for Ollama, and include OpenRouter
@@ -73,7 +73,7 @@ use crate::multi_backend::{BackendRegistration, MultiBackend};
 /// different Ollama URL or restrict the picker -- if Ollama isn't on the
 /// default port, it's simply not in the catalog.
 #[derive(Parser)]
-#[command(name = "anvil", version, about)]
+#[command(name = "draupnir", version, about)]
 struct Args {
     #[command(subcommand)]
     command: Option<Command>,
@@ -128,7 +128,7 @@ struct Args {
     resume: Option<String>,
 
     /// JSON Schema file for the final --print response. When supplied, the
-    /// final model turn uses strict provider-side structured output and Anvil
+    /// final model turn uses strict provider-side structured output and Draupnir
     /// validates the response before returning it.
     #[arg(long, value_name = "PATH", requires = "print")]
     response_schema: Option<PathBuf>,
@@ -159,7 +159,7 @@ struct Args {
     /// automatic permission classification. When unset, these calls use the
     /// active session model at low reasoning effort. An explicitly configured
     /// utility model uses its provider-default reasoning behavior.
-    #[arg(long, env = "ANVIL_UTILITY_MODEL")]
+    #[arg(long, env = "DRAUPNIR_UTILITY_MODEL")]
     utility_model: Option<String>,
 
     /// Optional cap on tool-calling turns per prompt. Defaults to `0` =
@@ -172,7 +172,7 @@ struct Args {
     /// cost/time, in which case hitting N forces a final text response. The
     /// conversation context is preserved on that stop, so sending another
     /// message (e.g. "continue") resumes the task from where it stopped.
-    #[arg(long, env = "ANVIL_MAX_TURNS", default_value_t = 0)]
+    #[arg(long, env = "DRAUPNIR_MAX_TURNS", default_value_t = 0)]
     max_turns: usize,
 
     /// Maximum number of sessions to keep resident in memory before the
@@ -188,7 +188,7 @@ struct Args {
     #[arg(long, default_value_t = 50)]
     max_history_turns: usize,
 
-    /// DEPRECATED. MCP servers are configured with `/mcp`; Anvil now manages
+    /// DEPRECATED. MCP servers are configured with `/mcp`; Draupnir now manages
     /// its own pinned local Bifrost binary for the built-in MCP server.
     #[arg(long, env = "BROKK_BIFROST_BINARY", hide = true)]
     bifrost_binary: Option<PathBuf>,
@@ -200,7 +200,7 @@ struct Args {
     /// mid-stream stall timeouts for back compatibility.
     #[arg(
         long,
-        env = "ANVIL_LLM_IDLE_TIMEOUT_SECS",
+        env = "DRAUPNIR_LLM_IDLE_TIMEOUT_SECS",
         default_value_t = llm_client::DEFAULT_IDLE_CHUNK_TIMEOUT_SECS,
         value_parser = RangedU64ValueParser::<u64>::new()
             .range(llm_client::MIN_IDLE_CHUNK_TIMEOUT_SECS..=llm_client::MAX_IDLE_CHUNK_TIMEOUT_SECS),
@@ -212,7 +212,7 @@ struct Args {
     /// unparseable chunks do not reset this timer.
     #[arg(
         long,
-        env = "ANVIL_LLM_STALL_TIMEOUT_SECS",
+        env = "DRAUPNIR_LLM_STALL_TIMEOUT_SECS",
         default_value_t = llm_client::DEFAULT_INTER_CHUNK_TIMEOUT_SECS,
         value_parser = RangedU64ValueParser::<u64>::new()
             .range(llm_client::MIN_IDLE_CHUNK_TIMEOUT_SECS..=llm_client::MAX_IDLE_CHUNK_TIMEOUT_SECS),
@@ -225,7 +225,7 @@ struct Args {
     /// behavior, permission, and service tier) are already live-session-only.
     /// Provider credential commands, the `allowed_tools` tool allowlist, and
     /// `/mcp` are not made transient by this flag.
-    #[arg(long, env = "ANVIL_TRANSIENT_SETUP", default_value_t = false)]
+    #[arg(long, env = "DRAUPNIR_TRANSIENT_SETUP", default_value_t = false)]
     transient_setup: bool,
 
     // ----- Deprecated backward-compat flags --------------------------------
@@ -258,7 +258,7 @@ struct Args {
     /// this flag forces native parsing regardless. On platforms
     /// without an OS sandbox, this also means `run_shell_command`
     /// runs without any sandbox of any kind.
-    #[arg(long, env = "ANVIL_NO_WASM_SANDBOX", default_value_t = false)]
+    #[arg(long, env = "DRAUPNIR_NO_WASM_SANDBOX", default_value_t = false)]
     no_wasm_sandbox: bool,
 
     /// Disable the built-in shell-output minimizer. By default,
@@ -266,17 +266,17 @@ struct Args {
     /// pytest, npm, ...) is condensed after capture, with the raw output
     /// preserved under `.brokk/shell-output/` in the workspace and
     /// referenced from the tool result.
-    #[arg(long, env = "ANVIL_NO_SHELL_MINIMIZER", default_value_t = false)]
+    #[arg(long, env = "DRAUPNIR_NO_SHELL_MINIMIZER", default_value_t = false)]
     no_shell_minimizer: bool,
 }
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Install Anvil as an ACP agent in a supported editor.
+    /// Install Draupnir as an ACP agent in a supported editor.
     Install(installer::InstallArgs),
     /// Run one tool-free, schema-constrained provider inference from JSON on stdin.
     Infer(infer::InferArgs),
-    /// Run Anvil as an HTTP daemon exposing the versioned REST API
+    /// Run Draupnir as an HTTP daemon exposing the versioned REST API
     /// (sessions, models, tools, runs) on a loopback listener.
     #[cfg(feature = "http-api")]
     Serve(http_api::ServeArgs),
@@ -419,7 +419,7 @@ fn test_ollama_base_url() -> Option<String> {
     // no public CLI flag for this; normal production routing remains the
     // documented zero-config Ollama default unless this explicit test env is
     // set by a harness.
-    std::env::var("ANVIL_TEST_OLLAMA_BASE_URL")
+    std::env::var("DRAUPNIR_TEST_OLLAMA_BASE_URL")
         .ok()
         .filter(|url| !url.trim().is_empty())
 }
@@ -552,7 +552,7 @@ pub fn openrouter_backend_from_key(raw: &str) -> Option<Arc<dyn LlmBackend>> {
     );
     headers.insert(
         reqwest::header::HeaderName::from_static("x-title"),
-        reqwest::header::HeaderValue::from_static("anvil"),
+        reqwest::header::HeaderValue::from_static("draupnir"),
     );
 
     // OpenRouter supports the unified reasoning object, so enable it.
@@ -765,7 +765,7 @@ async fn build_multi_backend(transient_setup: bool) -> Result<Arc<MultiBackend>>
     ])))
 }
 
-/// `anvil models`: discover all models from the configured providers and
+/// `draupnir models`: discover all models from the configured providers and
 /// print the resulting catalog, one wire id per line (`--json` for the full
 /// metadata). Mirrors the catalog a session's model picker shows.
 async fn run_models(transient_setup: bool, json: bool) -> Result<()> {
@@ -792,10 +792,10 @@ fn main() {
     // the overflow). Host the tokio runtime on a dedicated 8MB-stack thread
     // so the whole agent run gets the same headroom everywhere.
     let handle = std::thread::Builder::new()
-        .name("anvil-main".to_string())
-        .stack_size(ANVIL_MAIN_STACK_BYTES)
-        .spawn(anvil_run)
-        .expect("failed to spawn anvil main thread");
+        .name("draupnir-main".to_string())
+        .stack_size(DRAUPNIR_MAIN_STACK_BYTES)
+        .spawn(draupnir_run)
+        .expect("failed to spawn draupnir main thread");
     match handle.join() {
         Ok(Ok(())) => {}
         Ok(Err(error)) => {
@@ -806,18 +806,18 @@ fn main() {
     }
 }
 
-/// Stack for the Anvil server thread, in bytes. 8MB matches the macOS/Linux
+/// Stack for the Draupnir server thread, in bytes. 8MB matches the macOS/Linux
 /// main-thread default so behavior is uniform across platforms.
-const ANVIL_MAIN_STACK_BYTES: usize = 8 * 1024 * 1024;
+const DRAUPNIR_MAIN_STACK_BYTES: usize = 8 * 1024 * 1024;
 
-fn anvil_run() -> anyhow::Result<()> {
+fn draupnir_run() -> anyhow::Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()?;
-    runtime.block_on(anvil_main())
+    runtime.block_on(draupnir_main())
 }
 
-async fn anvil_main() -> Result<()> {
+async fn draupnir_main() -> Result<()> {
     // Configure tracing to stderr only (stdout is reserved for JSON-RPC)
     tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
@@ -896,7 +896,7 @@ async fn anvil_main() -> Result<()> {
     }
     if args.bifrost_binary.is_some() {
         tracing::warn!(
-            "--bifrost-binary is deprecated and ignored. Anvil now manages a pinned local \
+            "--bifrost-binary is deprecated and ignored. Draupnir now manages a pinned local \
              Bifrost MCP server; use `/mcp` to view or change MCP server configuration."
         );
     }
@@ -1043,12 +1043,12 @@ mod tests {
 
     #[test]
     fn models_subcommand_parses_plain_and_json() {
-        let plain = Args::parse_from(["anvil", "models"]);
+        let plain = Args::parse_from(["draupnir", "models"]);
         assert!(matches!(
             plain.command,
             Some(Command::Models { json: false })
         ));
-        let json = Args::parse_from(["anvil", "models", "--json"]);
+        let json = Args::parse_from(["draupnir", "models", "--json"]);
         assert!(matches!(json.command, Some(Command::Models { json: true })));
     }
 

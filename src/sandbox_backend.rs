@@ -198,7 +198,7 @@ impl SandboxBackend {
                     tracing::warn!(
                         %err,
                         "wasm sandbox failed to initialize; falling back to native parsers \
-                         (lose memory/crash/CPU isolation). Set ANVIL_NO_WASM_SANDBOX=1 to \
+                         (lose memory/crash/CPU isolation). Set DRAUPNIR_NO_WASM_SANDBOX=1 to \
                          silence this warning if running natively is intentional."
                     );
                     Self::OsNative

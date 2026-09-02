@@ -8,7 +8,7 @@ DeepSeek V4 Pro endpoint with reasoning enabled. They reconstruct the final thre
 histories, withhold the grader result, and do not run candidates, tools, repositories, or graders.
 
 The production-faithful dossier places the selected naturally-ended lane's test-file inventory
-and cumulative non-test diff before its trajectory, matching Anvil. The first baseline,
+and cumulative non-test diff before its trajectory, matching Draupnir. The first baseline,
 `adversarial`, `contract_binding`, and `evidence_binding` experiments predated that ordering fix;
 their qualitative failure modes remain useful, but their scores should not be treated as a clean
 comparison with the later prompts.

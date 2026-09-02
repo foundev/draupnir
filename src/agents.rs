@@ -99,7 +99,7 @@ pub struct AgentMeta {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AgentScope {
     BuiltIn,
-    /// Provided by an installed plugin (Claude Code or Anvil-native).
+    /// Provided by an installed plugin (Claude Code or Draupnir-native).
     /// Overrides bundled subagents; user and project ones override it.
     Plugin,
     User,
@@ -338,7 +338,7 @@ fn load_bundled_agent(
             return;
         }
     };
-    let location = PathBuf::from("<anvil>").join("brokk-agents").join(path);
+    let location = PathBuf::from("<draupnir>").join("brokk-agents").join(path);
     reg.add(AgentMeta {
         name,
         description,

@@ -3,28 +3,28 @@
 //! A plugin is a directory with a `.claude-plugin/plugin.json` manifest
 //! that can provide skills (`skills/<name>/SKILL.md`), subagents
 //! (`agents/<name>.md`), slash commands (`commands/<name>.md`), hooks
-//! (`hooks/hooks.json`), and MCP servers (`.mcp.json`). Anvil consumes
+//! (`hooks/hooks.json`), and MCP servers (`.mcp.json`). Draupnir consumes
 //! plugins from two sources:
 //!
 //!   1. **Claude Code installs** -- `~/.claude/plugins/installed_plugins.json`
 //!      (version 2), filtered by the `enabledPlugins` map in
 //!      `~/.claude/settings.json`. Anything installed with
-//!      `claude plugin install` works in Anvil with no extra steps.
+//!      `claude plugin install` works in Draupnir with no extra steps.
 //!   2. **Native installs** -- recorded in `<config_home>/plugins.json`
 //!      and managed by the `/plugin` slash command. Git installs are
 //!      cloned under `<config_home>/plugins/`; local-path installs are
 //!      referenced in place.
 //!
-//! Enabled state for Claude Code plugins can be overridden on the Anvil
+//! Enabled state for Claude Code plugins can be overridden on the Draupnir
 //! side (`claudeOverrides` in `plugins.json`) without touching Claude
-//! Code's own settings file, which Anvil never writes.
+//! Code's own settings file, which Draupnir never writes.
 //!
 //! Discovery is pure filesystem reads (a few small JSON files), cheap
 //! enough to re-run on every registry build. Consumers integrate the
 //! catalog at three points: `skills::discover` scans plugin skill roots
 //! (lowest precedence, so user/project skills override), `agents::discover`
 //! loads plugin agent files, and `session::effective_mcp_servers` merges
-//! plugin MCP servers (user-configured servers and Anvil's managed
+//! plugin MCP servers (user-configured servers and Draupnir's managed
 //! bifrost win on name collision).
 
 use std::collections::HashMap;
@@ -53,7 +53,7 @@ static NATIVE_WRITE_LOCK: Mutex<()> = Mutex::new(());
 // Manifest
 // ---------------------------------------------------------------------------
 
-/// Parsed `.claude-plugin/plugin.json`. Only the fields Anvil consumes
+/// Parsed `.claude-plugin/plugin.json`. Only the fields Draupnir consumes
 /// are modelled; unknown fields (author, keywords, marketplace display
 /// metadata) are ignored.
 #[derive(Debug, Clone, Deserialize)]
@@ -136,7 +136,7 @@ struct HookDef {
     timeout: Option<u64>,
 }
 
-/// One server entry in Claude Code `.mcp.json` format. Fields Anvil does
+/// One server entry in Claude Code `.mcp.json` format. Fields Draupnir does
 /// not support (`startup_timeout_sec`, `headers`, ...) are ignored.
 #[derive(Debug, Deserialize)]
 struct McpServerJson {
@@ -180,10 +180,10 @@ fn read_small_file(path: &Path) -> Result<String> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PluginSource {
-    /// Installed by Claude Code; read-only from Anvil's perspective
+    /// Installed by Claude Code; read-only from Draupnir's perspective
     /// (enable/disable goes through `claudeOverrides`).
     ClaudeCode,
-    /// Installed/registered by Anvil's `/plugin` command.
+    /// Installed/registered by Draupnir's `/plugin` command.
     Native,
 }
 
@@ -195,13 +195,13 @@ pub struct InstalledPlugin {
     pub root: PathBuf,
     pub manifest: PluginManifest,
     pub source: PluginSource,
-    /// Whether passive plugin content is available to Anvil. For Claude Code
-    /// installs this follows Claude's enabledPlugins settings, with Anvil
+    /// Whether passive plugin content is available to Draupnir. For Claude Code
+    /// installs this follows Claude's enabledPlugins settings, with Draupnir
     /// overrides taking precedence.
     pub enabled: bool,
     /// Whether executable plugin content may run. Native installs are
-    /// explicitly installed through Anvil, so this tracks `enabled`; Claude
-    /// Code installs require an explicit Anvil-side `/plugin enable`.
+    /// explicitly installed through Draupnir, so this tracks `enabled`; Claude
+    /// Code installs require an explicit Draupnir-side `/plugin enable`.
     pub executable_enabled: bool,
 }
 
@@ -359,7 +359,7 @@ impl InstalledPlugin {
         for event_name in events {
             let Some(event) = HookEvent::parse(event_name) else {
                 diagnostics.push(format!(
-                    "plugin '{}': hook event '{event_name}' is not supported by Anvil; ignoring",
+                    "plugin '{}': hook event '{event_name}' is not supported by Draupnir; ignoring",
                     self.key
                 ));
                 continue;
@@ -397,7 +397,7 @@ impl InstalledPlugin {
             .with_context(|| format!("invalid hooks config at '{}'", path.display()))
     }
 
-    /// Translate the plugin's MCP servers into Anvil's config model.
+    /// Translate the plugin's MCP servers into Draupnir's config model.
     /// Untranslatable entries are skipped with a message pushed to
     /// `diagnostics`.
     pub fn mcp_servers(&self, diagnostics: &mut Vec<String>) -> Vec<crate::mcp::McpServerConfig> {
@@ -712,7 +712,7 @@ const MAX_HOOK_OUTPUT_BYTES: usize = 16 * 1024;
 const MAX_HOOK_CONTEXT_TOTAL_BYTES: usize = 32 * 1024;
 const MAX_HOOK_REASON_TOTAL_BYTES: usize = 32 * 1024;
 
-/// Hook events Anvil executes. Claude Code defines more (SessionStart,
+/// Hook events Draupnir executes. Claude Code defines more (SessionStart,
 /// Stop, PreCompact, ...); unsupported ones surface a diagnostic at
 /// discovery so plugin authors aren't silently ignored.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1089,7 +1089,7 @@ fn discover_claude_installs(
         // A manifest is optional for Claude Code plugins (e.g. LSP-only
         // plugins ship none); the default directory conventions still
         // apply, and a plugin with none of them simply contributes
-        // nothing Anvil consumes. Only a *broken* manifest is worth a
+        // nothing Draupnir consumes. Only a *broken* manifest is worth a
         // diagnostic.
         let manifest_file = record.install_path.join(MANIFEST_DIR).join(MANIFEST_FILE);
         let manifest = if manifest_file.is_file() {
@@ -1112,11 +1112,11 @@ fn discover_claude_installs(
                 mcp_servers: None,
             }
         };
-        // Anvil-side override beats Claude Code's own setting; a plugin
+        // Draupnir-side override beats Claude Code's own setting; a plugin
         // absent from `enabledPlugins` counts as enabled (installing it
         // was the opt-in). Executable components (hooks/MCP) are stricter:
         // a Claude-discovered plugin must be explicitly enabled through
-        // Anvil before it can run host processes.
+        // Draupnir before it can run host processes.
         let enabled = overrides
             .get(key)
             .or_else(|| enabled_map.get(key))
@@ -1210,8 +1210,8 @@ fn discover_native(registry: &NativeRegistry, catalog: &mut PluginCatalog) {
 pub struct NativeRegistry {
     #[serde(default)]
     pub plugins: Vec<NativePluginEntry>,
-    /// Anvil-side enable/disable overrides for Claude Code plugins,
-    /// keyed by `name@marketplace`. Kept here so Anvil never writes to
+    /// Draupnir-side enable/disable overrides for Claude Code plugins,
+    /// keyed by `name@marketplace`. Kept here so Draupnir never writes to
     /// Claude Code's settings.json.
     #[serde(default, rename = "claudeOverrides")]
     pub claude_overrides: HashMap<String, bool>,
@@ -1224,7 +1224,7 @@ pub struct NativePluginEntry {
     pub source: String,
     /// The plugin root (where `.claude-plugin/plugin.json` lives).
     pub path: PathBuf,
-    /// Directory Anvil created for this install (a git clone); `path`
+    /// Directory Draupnir created for this install (a git clone); `path`
     /// may be a subdirectory of it for marketplace installs. `None` for
     /// local-path registrations, which are never deleted.
     #[serde(
@@ -1284,7 +1284,7 @@ pub fn write_native_registry(registry: &NativeRegistry) -> Result<()> {
 /// Register a plugin rooted at `path`. Validates the manifest and
 /// rejects name collisions with existing native entries. Returns the
 /// registered plugin's manifest name. `install_root` is the clone
-/// directory Anvil owns for this install, when there is one.
+/// directory Draupnir owns for this install, when there is one.
 pub fn register_native(source: &str, path: &Path, install_root: Option<&Path>) -> Result<String> {
     let manifest = load_manifest(path)?;
     let name = manifest.name.clone();
@@ -1468,7 +1468,7 @@ mod tests {
         assert!(p.enabled, "absent from enabledPlugins means enabled");
         assert!(
             !p.executable_enabled,
-            "Claude-discovered hooks/MCP require an explicit Anvil enable"
+            "Claude-discovered hooks/MCP require an explicit Draupnir enable"
         );
         assert_eq!(p.source, PluginSource::ClaudeCode);
 
@@ -1484,7 +1484,7 @@ mod tests {
     }
 
     #[test]
-    fn claude_plugin_executables_require_anvil_override() {
+    fn claude_plugin_executables_require_draupnir_override() {
         let config = TempDir::new().unwrap();
         let _scope = crate::setup_state::TestConfigHomeScope::set(config.path().to_path_buf());
 
@@ -1680,7 +1680,7 @@ mod tests {
                 .to_string()
         );
         assert_eq!(s.args[1], format!("{}/data", plugin.path().display()));
-        // Anvil's own `{cwd}` placeholder must survive untouched.
+        // Draupnir's own `{cwd}` placeholder must survive untouched.
         assert_eq!(s.args[2], "{cwd}");
         assert_eq!(s.env[0].value, plugin.path().display().to_string());
         assert_eq!(s.framing, crate::mcp::McpFraming::Line);

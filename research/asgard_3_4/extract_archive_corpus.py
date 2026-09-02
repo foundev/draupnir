@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract ordinary Asgard routing windows from Anvil result archives."""
+"""Extract ordinary Asgard routing windows from Draupnir result archives."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def parse_dossier_telemetry(stderr_text: str) -> tuple[list[dict[str, int]], lis
         missing = [field for field in DOSSIER_FIELDS if field not in values]
         if missing:
             warnings.append(
-                f"anvil-stderr.txt:{line_number}: dossier telemetry missing "
+                f"draupnir-stderr.txt:{line_number}: dossier telemetry missing "
                 + ", ".join(missing)
             )
             continue
@@ -77,7 +77,7 @@ def parse_trace(trace_text: str) -> tuple[list[dict[str, Any]], dict[str, int], 
         try:
             row = json.loads(raw_line)
         except json.JSONDecodeError as error:
-            warnings.append(f"anvil-trace.jsonl:{line_number}: {error.msg}")
+            warnings.append(f"draupnir-trace.jsonl:{line_number}: {error.msg}")
             continue
         if row.get("type") != "asgard_decision":
             continue
@@ -165,10 +165,10 @@ def extract_archive(source: ArchiveInput) -> tuple[list[dict[str, Any]], dict[st
         result = _read_json_member(archive, "result.json")
         reward = _read_json_member(archive, "reward.json")
         telemetry, stderr_warnings = parse_dossier_telemetry(
-            _read_text_member(archive, "anvil-stderr.txt")
+            _read_text_member(archive, "draupnir-stderr.txt")
         )
         decisions, trace_counts, trace_warnings = parse_trace(
-            _read_text_member(archive, "anvil-trace.jsonl")
+            _read_text_member(archive, "draupnir-trace.jsonl")
         )
 
     archive_id = source.path.stem
@@ -364,14 +364,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Extract aligned Asgard ordinary-routing windows and Q3/Q4 summary "
-            "metrics from Anvil result zip archives."
+            "metrics from Draupnir result zip archives."
         )
     )
     parser.add_argument(
         "archives",
         nargs="*",
         metavar="ARCHIVE",
-        help="Anvil result zip archive (repeatable)",
+        help="Draupnir result zip archive (repeatable)",
     )
     parser.add_argument(
         "-m",

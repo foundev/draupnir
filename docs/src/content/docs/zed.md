@@ -1,33 +1,33 @@
 ---
 title: Zed
-description: Install, configure, validate, and troubleshoot Anvil in Zed.
+description: Install, configure, validate, and troubleshoot Draupnir in Zed.
 ---
 
-Zed can launch Anvil as a custom ACP agent. Use an absolute executable path so editor startup does not depend on shell `PATH` configuration.
+Zed can launch Draupnir as a custom ACP agent. Use an absolute executable path so editor startup does not depend on shell `PATH` configuration.
 
 ## Automatic Configuration
 
-Run the installed Anvil binary:
+Run the installed Draupnir binary:
 
 ```bash
-anvil install zed
+draupnir install zed
 ```
 
-Anvil detects its own executable path and merges an `Anvil` agent into Zed's
+Draupnir detects its own executable path and merges an `Draupnir` agent into Zed's
 existing settings. It preserves unrelated properties and leading JSONC
-comments. If an `Anvil` entry already exists, review it and then pass `--force`
+comments. If an `Draupnir` entry already exists, review it and then pass `--force`
 to replace only that entry.
 
 ## Manual Configuration
 
-Install Anvil first, then add an entry to `~/.config/zed/settings.json`:
+Install Draupnir first, then add an entry to `~/.config/zed/settings.json`:
 
 ```json
 {
   "agent_servers": {
-    "Anvil": {
+    "Draupnir": {
       "type": "custom",
-      "command": "/absolute/path/to/anvil",
+      "command": "/absolute/path/to/draupnir",
       "args": [],
       "env": {}
     }
@@ -39,18 +39,18 @@ Merge `agent_servers` into the existing object rather than replacing unrelated s
 
 ## Source-Checkout Helper
 
-From an Anvil checkout:
+From a Draupnir checkout:
 
 ```bash
 rustup target add wasm32-wasip2
 cargo xtask build-acp-for-zed
 ```
 
-The helper builds `target/release/anvil` and writes a `Brokk Code (Rust Local)` entry while preserving unrelated JSON properties. Override the config location with `--config <path>`. This helper belongs to the source checkout and is not installed with the `brokk-anvil` crate.
+The helper builds `target/release/draupnir` and writes a `Brokk Code (Rust Local)` entry while preserving unrelated JSON properties. Override the config location with `--config <path>`. This helper belongs to the source checkout and is not installed with the `brokk-draupnir` crate.
 
 ## First Session
 
-Choose the Anvil agent in Zed. If a provider is already usable, Anvil reports that it is ready; otherwise setup begins. Run `/setup` at any time. For Codex/ChatGPT:
+Choose the Draupnir agent in Zed. If a provider is already usable, Draupnir reports that it is ready; otherwise setup begins. Run `/setup` at any time. For Codex/ChatGPT:
 
 ```text
 /setup codex
@@ -68,7 +68,7 @@ Open a source repository, select `readOnly`, and use a prompt that proves a Bifr
 Use the Bifrost get_summaries tool on src/main.rs. Name the symbols returned and do not edit files.
 ```
 
-Success requires a Bifrost tool card and source-specific results. A generic answer or ordinary file read does not prove managed Bifrost. For the complete permission and edit journey, run the [ten-minute evaluation](/evaluate-anvil/).
+Success requires a Bifrost tool card and source-specific results. A generic answer or ordinary file read does not prove managed Bifrost. For the complete permission and edit journey, run the [ten-minute evaluation](/evaluate-draupnir/).
 
 ## Troubleshooting
 
@@ -76,4 +76,4 @@ Success requires a Bifrost tool card and source-specific results. A generic answ
 - Run the same path with `--version` in a terminal.
 - Start a fresh Agent Panel session after configuration changes.
 - If setup cannot show credential forms, the client may fall back to text commands; read the secret-handling warning in [Providers](/providers/#credentials-and-setup-forms).
-- Inspect Anvil's stderr logs; stdout is reserved for ACP JSON-RPC.
+- Inspect Draupnir's stderr logs; stdout is reserved for ACP JSON-RPC.

@@ -85,7 +85,7 @@ pub enum SkillKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SkillScope {
-    /// Provided by an installed plugin (Claude Code or Anvil-native).
+    /// Provided by an installed plugin (Claude Code or Draupnir-native).
     /// Lowest precedence: user and project skills override on collision.
     Plugin,
     User,

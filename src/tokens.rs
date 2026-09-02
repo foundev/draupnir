@@ -4,7 +4,7 @@
 //! `brokk-core/src/main/java/ai/brokk/util/Messages.java`, which uses
 //! jtokkit's `O200K_BASE` encoding (the GPT-4o / o-series tokenizer)
 //! uniformly for every model. We follow the same convention so a
-//! session zip opened in either Anvil or Brokk reports the same
+//! session zip opened in either Draupnir or Brokk reports the same
 //! number. The count is explicitly an approximation -- for non-OpenAI
 //! models (Claude, Gemini, Llama) it will diverge from the provider's
 //! true tokenizer by single-digit percentages, which is fine because

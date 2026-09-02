@@ -2,7 +2,7 @@
 
 *2026-07-29. First measurement on tasks never used for iteration. 27 tasks
 drawn from the 54 luna-solvable held-out set (stratified split; sibling set B
-and the 24 luna-unsolvable tasks remain sealed). Binary anvil-e82c8ea:
+and the 24 luna-unsolvable tasks remain sealed). Binary draupnir-e82c8ea:
 simplification doctrine + time leases. Supervisor bedrock sol@high, workers
 luna@xhigh, runs=1.*
 

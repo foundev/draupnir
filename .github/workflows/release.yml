@@ -52,9 +52,9 @@ jobs:
         shell: bash
         run: |
           ref="${GITHUB_REF_NAME//\//-}"
-          name="brokk-anvil-${ref}-x86_64-unknown-linux-gnu"
+          name="brokk-draupnir-${ref}-x86_64-unknown-linux-gnu"
           mkdir "$name"
-          cp "target/x86_64-unknown-linux-gnu/release/anvil" "$name/"
+          cp "target/x86_64-unknown-linux-gnu/release/draupnir" "$name/"
           cp README.md LICENSE licenses/GPL-3.0.md licenses/SOURCE.md licenses/THIRD_PARTY_LICENSES.html licenses/SUPPLEMENTAL_THIRD_PARTY_NOTICES.txt "$name/"
           zip -r "$name.zip" "$name"
           sha256sum "$name.zip" > "$name.zip.sha256"
@@ -64,8 +64,8 @@ jobs:
         with:
           name: x86_64-unknown-linux-gnu
           path: |
-            brokk-anvil-*.zip
-            brokk-anvil-*.zip.sha256
+            brokk-draupnir-*.zip
+            brokk-draupnir-*.zip.sha256
           if-no-files-found: error
 
   build-linux-arm64:
@@ -102,9 +102,9 @@ jobs:
         shell: bash
         run: |
           ref="${GITHUB_REF_NAME//\//-}"
-          name="brokk-anvil-${ref}-aarch64-unknown-linux-gnu"
+          name="brokk-draupnir-${ref}-aarch64-unknown-linux-gnu"
           mkdir "$name"
-          cp "target/aarch64-unknown-linux-gnu/release/anvil" "$name/"
+          cp "target/aarch64-unknown-linux-gnu/release/draupnir" "$name/"
           cp README.md LICENSE licenses/GPL-3.0.md licenses/SOURCE.md licenses/THIRD_PARTY_LICENSES.html licenses/SUPPLEMENTAL_THIRD_PARTY_NOTICES.txt "$name/"
           zip -r "$name.zip" "$name"
           sha256sum "$name.zip" > "$name.zip.sha256"
@@ -114,8 +114,8 @@ jobs:
         with:
           name: aarch64-unknown-linux-gnu
           path: |
-            brokk-anvil-*.zip
-            brokk-anvil-*.zip.sha256
+            brokk-draupnir-*.zip
+            brokk-draupnir-*.zip.sha256
           if-no-files-found: error
 
   build-android-arm64:
@@ -168,9 +168,9 @@ jobs:
         shell: bash
         run: |
           ref="${GITHUB_REF_NAME//\//-}"
-          name="brokk-anvil-${ref}-aarch64-linux-android"
+          name="brokk-draupnir-${ref}-aarch64-linux-android"
           mkdir "$name"
-          cp "target/aarch64-linux-android/release/anvil" "$name/"
+          cp "target/aarch64-linux-android/release/draupnir" "$name/"
           cp README.md LICENSE licenses/GPL-3.0.md licenses/SOURCE.md licenses/THIRD_PARTY_LICENSES.html licenses/SUPPLEMENTAL_THIRD_PARTY_NOTICES.txt "$name/"
           zip -r "$name.zip" "$name"
           sha256sum "$name.zip" > "$name.zip.sha256"
@@ -180,8 +180,8 @@ jobs:
         with:
           name: aarch64-linux-android
           path: |
-            brokk-anvil-*.zip
-            brokk-anvil-*.zip.sha256
+            brokk-draupnir-*.zip
+            brokk-draupnir-*.zip.sha256
           if-no-files-found: error
 
   build-windows:
@@ -215,9 +215,9 @@ jobs:
         shell: pwsh
         run: |
           $ref = $env:GITHUB_REF_NAME -replace '/', '-'
-          $name = "brokk-anvil-$ref-x86_64-pc-windows-msvc"
+          $name = "brokk-draupnir-$ref-x86_64-pc-windows-msvc"
           New-Item -ItemType Directory -Path $name | Out-Null
-          Copy-Item "target\x86_64-pc-windows-msvc\release\anvil.exe" -Destination $name
+          Copy-Item "target\x86_64-pc-windows-msvc\release\draupnir.exe" -Destination $name
           Copy-Item "README.md", "LICENSE", "licenses\GPL-3.0.md", "licenses\SOURCE.md", "licenses\THIRD_PARTY_LICENSES.html", "licenses\SUPPLEMENTAL_THIRD_PARTY_NOTICES.txt" -Destination $name
           Compress-Archive -Path $name -DestinationPath "$name.zip"
           $hash = (Get-FileHash -Algorithm SHA256 "$name.zip").Hash.ToLower()
@@ -228,8 +228,8 @@ jobs:
         with:
           name: x86_64-pc-windows-msvc
           path: |
-            brokk-anvil-*.zip
-            brokk-anvil-*.zip.sha256
+            brokk-draupnir-*.zip
+            brokk-draupnir-*.zip.sha256
           if-no-files-found: error
 
   build-macos:
@@ -266,18 +266,18 @@ jobs:
         run: |
           mkdir -p target/universal-apple-darwin/release
           lipo -create \
-            target/x86_64-apple-darwin/release/anvil \
-            target/aarch64-apple-darwin/release/anvil \
-            -output target/universal-apple-darwin/release/anvil
-          lipo -info target/universal-apple-darwin/release/anvil
+            target/x86_64-apple-darwin/release/draupnir \
+            target/aarch64-apple-darwin/release/draupnir \
+            -output target/universal-apple-darwin/release/draupnir
+          lipo -info target/universal-apple-darwin/release/draupnir
 
       - name: Package archive
         shell: bash
         run: |
           ref="${GITHUB_REF_NAME//\//-}"
-          name="brokk-anvil-${ref}-universal-apple-darwin"
+          name="brokk-draupnir-${ref}-universal-apple-darwin"
           mkdir "$name"
-          cp target/universal-apple-darwin/release/anvil "$name/"
+          cp target/universal-apple-darwin/release/draupnir "$name/"
           cp README.md LICENSE licenses/GPL-3.0.md licenses/SOURCE.md licenses/THIRD_PARTY_LICENSES.html licenses/SUPPLEMENTAL_THIRD_PARTY_NOTICES.txt "$name/"
           zip -r "$name.zip" "$name"
           shasum -a 256 "$name.zip" > "$name.zip.sha256"
@@ -287,8 +287,8 @@ jobs:
         with:
           name: universal-apple-darwin
           path: |
-            brokk-anvil-*.zip
-            brokk-anvil-*.zip.sha256
+            brokk-draupnir-*.zip
+            brokk-draupnir-*.zip.sha256
           if-no-files-found: error
 
   release:
@@ -310,8 +310,8 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            artifacts/brokk-anvil-*.zip
-            artifacts/brokk-anvil-*.zip.sha256
+            artifacts/brokk-draupnir-*.zip
+            artifacts/brokk-draupnir-*.zip.sha256
 
       - name: Announce release on Discord
         continue-on-error: true
@@ -321,73 +321,3 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         shell: bash
         run: bash scripts/announce-discord-release.sh
-
-  publish-npm:
-    name: Gate and dispatch package publishes
-    if: github.event_name == 'push'
-    needs: release
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Require the tagged release workflows to succeed
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag_sha=$(git rev-list -n1 "$TAG")
-          wait_for_workflow() {
-            local workflow="$1" event="$2" attempts="${3:-40}" excluded_run_ids="${4:-[]}"
-            for ((attempt = 1; attempt <= attempts; attempt++)); do
-              local runs latest status conclusion
-              runs=$(gh api \
-                "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?event=$event&head_sha=$tag_sha&per_page=100" \
-                --jq '.workflow_runs' \
-                | jq -c --arg tag "$TAG" --argjson excluded "$excluded_run_ids" \
-                  '[.[] | select(.head_branch == $tag and (.id as $id | $excluded | index($id) | not))]')
-              latest=$(jq -c 'sort_by(.created_at) | last // empty' <<<"$runs")
-              if [[ -z "$latest" ]]; then
-                echo "Waiting for $workflow to start for $TAG ($attempt/$attempts)"
-              else
-                status=$(jq -r '.status' <<<"$latest")
-                conclusion=$(jq -r '.conclusion // empty' <<<"$latest")
-                if [[ "$status" == completed && "$conclusion" == success ]]; then
-                  echo "$workflow passed for $TAG"
-                  return 0
-                fi
-                if [[ "$status" == completed ]]; then
-                  echo "::error::$workflow concluded $conclusion for $TAG"
-                  return 1
-                fi
-                echo "Waiting for $workflow ($status, $attempt/$attempts)"
-              fi
-              sleep 30
-            done
-            echo "::error::Timed out waiting for $workflow to pass for $TAG"
-            return 1
-          }
-
-          wait_for_workflow ci.yml push
-          wait_for_workflow docs.yml push
-          wait_for_workflow publish-crate.yml push
-
-          existing_npm_run_ids=$(gh api \
-            "repos/$GITHUB_REPOSITORY/actions/workflows/publish-npm.yml/runs?event=workflow_dispatch&head_sha=$tag_sha&per_page=100" \
-            --jq '.workflow_runs' \
-            | jq -c --arg tag "$TAG" '[.[] | select(.head_branch == $tag) | .id]')
-          gh workflow run publish-npm.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f tag="$TAG" -f publish=true
-          wait_for_workflow publish-npm.yml workflow_dispatch 120 "$existing_npm_run_ids"
-
-          existing_pypi_run_ids=$(gh api \
-            "repos/$GITHUB_REPOSITORY/actions/workflows/publish-pypi.yml/runs?event=workflow_dispatch&head_sha=$tag_sha&per_page=100" \
-            --jq '.workflow_runs' \
-            | jq -c --arg tag "$TAG" '[.[] | select(.head_branch == $tag) | .id]')
-          gh workflow run publish-pypi.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f tag="$TAG" -f publish=true
-          wait_for_workflow publish-pypi.yml workflow_dispatch 120 "$existing_pypi_run_ids"

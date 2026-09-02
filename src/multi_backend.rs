@@ -53,7 +53,7 @@ const PROVIDER_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(15);
 /// re-resolves the running server's port (see `discovery::ds4_base_url`)
 /// and reinstalls a backend pointed at it. That keeps `ds4::*` chat
 /// routing aimed at the same port discovery just found, and lets ds4 come
-/// online when it's started after Anvil.
+/// online when it's started after Draupnir.
 pub struct BackendRegistration {
     source: String,
     label: String,

@@ -18,7 +18,7 @@ const outputPath = path.resolve(
 // inventory catches standalone notices and native payloads that can otherwise
 // appear without anyone deciding whether an additional artifact notice is due.
 const auditedStandaloneNotices = new Set([
-  "brokk-anvil-minimizer/NOTICE",
+  "brokk-draupnir-minimizer/NOTICE",
   "cfg_aliases/NOTICES.md",
 ]);
 const auditedLinksPackages = new Set([
@@ -123,14 +123,14 @@ async function legalFile(metadata, name, relativePath, component, scope) {
 
 function render(sections) {
   const lines = [
-    "ANVIL SUPPLEMENTAL THIRD-PARTY NOTICES",
+    "DRAUPNIR SUPPLEMENTAL THIRD-PARTY NOTICES",
     "",
     "This file supplements THIRD_PARTY_LICENSES.html. Cargo package metadata",
     "does not enumerate standalone NOTICE files or every license embedded in",
     "native source trees compiled by Rust wrapper crates.",
     "",
     "The sections below are reproduced from exact packages resolved by",
-    "Cargo.lock for Anvil's default release feature set. The generated Rust",
+    "Cargo.lock for Draupnir's default release feature set. The generated Rust",
     "report also covers the wasm32-wasip2 parser guest embedded in the binary.",
   ];
 

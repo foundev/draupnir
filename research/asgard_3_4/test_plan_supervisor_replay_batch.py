@@ -117,7 +117,7 @@ def write_archive(
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr("result.json", json.dumps({"taskId": task}))
         archive.writestr(
-            "anvil-trace.jsonl", "\n".join(json.dumps(row) for row in rows) + "\n"
+            "draupnir-trace.jsonl", "\n".join(json.dumps(row) for row in rows) + "\n"
         )
     return path
 

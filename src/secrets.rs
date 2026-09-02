@@ -21,17 +21,17 @@
 //!   third-party Codex CLI integration and must remain compatible with it.
 //! - The legacy `~/.secrets/` Bedrock token files are still read as a
 //!   fallback by `bedrock_client` but are never migrated or deleted here:
-//!   that directory is shared with other tools, so Anvil only removes
+//!   that directory is shared with other tools, so Draupnir only removes
 //!   those files on an explicit `/setup bedrock disconnect`.
 //!
-//! [`migrate_legacy_files`] folds the Anvil-owned per-provider files into
+//! [`migrate_legacy_files`] folds the Draupnir-owned per-provider files into
 //! `secrets.json` once at startup (copy, then delete only after the
 //! consolidated file is safely on disk). The provider modules keep a
 //! read-only fallback to their legacy file so a failed or skipped
 //! migration never locks a user out.
 //!
 //! The migration is ONE-WAY: once the legacy files are folded in and
-//! removed, downgrading to an Anvil release that predates `secrets.json`
+//! removed, downgrading to a Draupnir release that predates `secrets.json`
 //! shows every provider as "not connected" until the user re-runs the
 //! login/setup commands (env vars keep working). A malformed
 //! `secrets.json` never locks anything: reads fall back to the legacy
@@ -194,7 +194,7 @@ pub(crate) fn remove_legacy_credential_file(path: &Path) {
     }
 }
 
-/// One-time consolidation of the Anvil-owned legacy per-provider
+/// One-time consolidation of the Draupnir-owned legacy per-provider
 /// credential files (`openrouter.json`, `bedrock.json`) into
 /// `secrets.json`, called once at startup.
 ///
@@ -266,7 +266,7 @@ pub fn migrate_legacy_files() {
         }
         tracing::info!(
             "migrated legacy provider credential files into {}; note this is one-way -- \
-             a downgraded Anvil will need its login/setup commands re-run",
+             a downgraded Draupnir will need its login/setup commands re-run",
             secrets_path()
                 .map(|p| p.display().to_string())
                 .unwrap_or_else(|_| "secrets.json".to_string())

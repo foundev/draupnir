@@ -325,7 +325,7 @@ const CACHE_CONTROL: CacheControl = CacheControl {
 };
 
 fn trace_bedrock_request(body: &BedrockAnthropicRequest) {
-    let Ok(path) = std::env::var("ANVIL_TRACE_JSONL") else {
+    let Ok(path) = std::env::var("DRAUPNIR_TRACE_JSONL") else {
         return;
     };
     let path = path.trim();
@@ -377,7 +377,7 @@ fn trace_bedrock_request(body: &BedrockAnthropicRequest) {
 
 pub const BEDROCK_API_KEY_ENV: &str = "AWS_BEARER_TOKEN_BEDROCK";
 pub const BEDROCK_REGION_ENV: &str = "BEDROCK_REGION";
-pub const BEDROCK_MODEL_ENV: &str = "ANVIL_BEDROCK_MODEL";
+pub const BEDROCK_MODEL_ENV: &str = "DRAUPNIR_BEDROCK_MODEL";
 pub const BEDROCK_DEFAULT_REGION: &str = "us-east-1";
 pub const BEDROCK_DEFAULT_MODEL: &str = "us.anthropic.claude-sonnet-4-6";
 const BEDROCK_RUNTIME_BASE_URL: &str = "https://bedrock-runtime";

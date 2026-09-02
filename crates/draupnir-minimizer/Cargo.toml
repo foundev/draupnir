@@ -1,12 +1,12 @@
 [package]
-name = "brokk-anvil-minimizer"
-# Versioned in lockstep with the root brokk-anvil crate (CI enforces the
+name = "brokk-draupnir-minimizer"
+# Versioned in lockstep with the root brokk-draupnir crate (CI enforces the
 # match), so the published minimizer always corresponds to the release tag.
 version = "0.27.0"
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/BrokkAi/anvil"
-description = "Vendored copy of oh-my-pi's pi-shell output minimizer (adapts MIT-licensed algorithms from rtk-ai/rtk; see NOTICE). Support crate for brokk-anvil."
+repository = "https://github.com/BrokkAi/draupnir"
+description = "Vendored copy of oh-my-pi's pi-shell output minimizer (adapts MIT-licensed algorithms from rtk-ai/rtk; see NOTICE). Support crate for brokk-draupnir."
 
 [dependencies]
 brush-parser = "0.3"
@@ -19,7 +19,7 @@ xxhash-rust = { version = "0.8", features = ["xxh64"] }
 [dev-dependencies]
 parking_lot = "0.12.5"
 
-# Vendored third-party code: never fail anvil's `-D warnings` clippy gate.
+# Vendored third-party code: never fail draupnir's `-D warnings` clippy gate.
 [lints.rust]
 warnings = "allow"
 

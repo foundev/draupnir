@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Use the agent or runtime bug form instead when Anvil behaved incorrectly during an ACP session.
+        Use the agent or runtime bug form instead when Draupnir behaved incorrectly during an ACP session.
 
   - type: dropdown
     id: affected-surface
@@ -52,7 +52,7 @@ body:
     id: version-environment
     attributes:
       label: Version and environment
-      description: Optionally include the Anvil version or commit, ACP client, operating system, and relevant configuration.
+      description: Optionally include the Draupnir version or commit, ACP client, operating system, and relevant configuration.
 
   - type: textarea
     id: additional-context

@@ -11,7 +11,7 @@ Goal, per owner: **beat vanilla sol@high at sol@high prices** — sol@xhigh
 
 | run | binaries | result | vs sol@high E=15.2 |
 |---|---|---|---|
-| 1 | mj 1.2.1 (roster), anvil chain-fix only | killed at 12 resolved: 4 S, 8 poisoned | — (invalid config) |
+| 1 | mj 1.2.1 (roster), draupnir chain-fix only | killed at 12 resolved: 4 S, 8 poisoned | — (invalid config) |
 | 2 | mj master (pinned sol/luna), all fixes | **12/20**, zero timeouts | P(vanilla ≤12) = 0.006 |
 | 3 | + subagent debrief (mj `136bbd3`) | **13/20** | P(vanilla ≤13) = **0.06** |
 
@@ -22,14 +22,14 @@ within noise and clearly fails on price.
 
 ## What run 1 died of (all fixed, all field-verified in runs 2–3)
 
-1. **Sticky chained-Responses failures** (anvil `eae9792`): Bedrock Mantle
+1. **Sticky chained-Responses failures** (draupnir `eae9792`): Bedrock Mantle
    intermittently ends streams with `server_error` inside HTTP 200 (~6–9%/req);
    retries re-sent the same poisoned `previous_response_id`, killing 48/48
    attempts on 07-30 while fresh sessions succeeded in the same minutes. The
    exact failing request replayed clean 3/3 as full input. Fix: evict the whole
    cached chain lineage on stream failure. Field: 9 evictions, 9 recoveries in
    one smoke attempt.
-2. **A 500 wearing a 400's code** (anvil `2d73a76`): `invalid_prompt:
+2. **A 500 wearing a 400's code** (draupnir `2d73a76`): `invalid_prompt:
    Internal server error` classified terminal; now the message earns the
    patient tier, genuine prompt rejections stay terminal.
 3. **Roster contamination** (mj 1.2.1): per-call `create_subagent`
@@ -40,7 +40,7 @@ within noise and clearly fails on price.
    review deliberately prefers a *different* model than the primary.
 4. **Silent tool-surface loss** (brokkbench `94e81106072`): the deepswe
    engine never staged the bifrost shim its own MCP config pointed at
-   (ENOENT while anvil's bundled 0.8.6 sat unused), and
+   (ENOENT while draupnir's bundled 0.8.6 sat unused), and
    `BPR_AGENT_ALLOWED_TOOLS` stripped `create_subagent`/`subagent_cancel` —
    a full sol/luna smoke solved its task with **zero delegations** because
    the tool never reached the catalog. Also renamed the phantom
@@ -111,7 +111,7 @@ is also the cheapest part of the architecture.
 
 ## Addendum: run 4 (sol+high / luna+max, session affordance) — 2026-07-31 evening
 
-Config delta from run 3: luna xhigh→max (anvil preset + brokkbench effort
+Config delta from run 3: luna xhigh→max (draupnir preset + brokkbench effort
 gate had to learn `max` first — both silently/loudly rejected it), the
 `<session>` resume affordance in reports, mj at 1.3.0-era master.
 
@@ -163,7 +163,7 @@ full report via a bus claim. Plus mj `1598697`/`3a6ccfc` (session note),
 the headless autonomy directive (never block on unobtainable approvals —
 added after sol twice obeyed OPA's AGENTS.md contribution gate and quit in
 one minute asking a nonexistent user for DCO sign-off), and `max` effort
-plumbed through anvil's preset list and brokkbench's effort gate (both
+plumbed through draupnir's preset list and brokkbench's effort gate (both
 silently/loudly rejected it before).
 
 Run 5 (async + luna@max + debrief): killed at 16 resolved per the new
@@ -203,7 +203,7 @@ configurations.
 
 ## Addendum 3: runs 6-7 — multi-edit, discrete review resurrected, and the first result above the bar (2026-08-01)
 
-Two product fixes preceded these runs. **Multi-hunk edit** (anvil
+Two product fixes preceded these runs. **Multi-hunk edit** (draupnir
 `fca13eb7`-era, modeled on oh-my-pi's replace schema): `edit` takes
 sequential `edits` entries, `write_file` owns heavy rewrites; live adoption
 was immediate (all batch-shape, up to 5 hunks/call, 11 write_file rewrites
@@ -216,7 +216,7 @@ run 1 (single-prompt fallback). Since run 2: `detect_bifrost()` searches
 MJ_BIFROST_PATH then PATH; neither reached /opt/work/bin in the container,
 and the fatal-review change had removed the fallback — every review died
 at birth, unlogged. One env var (MJ_BIFROST_PATH) fixed detection; one
-more version skew (mj master's analyze_diff flags vs anvil's bundled
+more version skew (mj master's analyze_diff flags vs draupnir's bundled
 bifrost 0.8.6) needed a separately staged bifrost 0.8.18 for mj
 (MJ_BIFROST_BIN → /opt/work/bin/bifrost-mj). The supervisor also gained
 the owner-approved bounded completeness mandate: every explicitly stated
@@ -293,8 +293,8 @@ behaviors trace to concrete defects:
    the sandboxed read_file. Sol's countermeasures were rational and
    expensive: 11 RTK_DISABLED=1 bypasses (~17min re-running, pebble), a
    self-invented 5-part escape incantation used 14x (psm). Ownership
-   settled: rtk is vendored INTO anvil (rtk_core; shell.rs rewrites
-   every command through `anvil __rtk`), and `ANVIL_RTK_DISABLED=1` is
+   settled: rtk is vendored INTO draupnir (rtk_core; shell.rs rewrites
+   every command through `draupnir __rtk`), and `DRAUPNIR_RTK_DISABLED=1` is
    an existing zero-code global kill switch — rip-vs-fix is a free A/B.
 2. **run_shell_command timeout is milliseconds** (1s round-up floor).
    Skrub's reviewer passed `timeout: 120` meaning seconds, was killed at
@@ -329,7 +329,7 @@ of review earns its cost; rounds two through six bought nothing.
 
 **Decision round (owner, 2026-08-01)**: timeout moves to seconds with a
 [10..3600] clamp (schema rename `timeout_seconds` proposed, pending);
-rtk rip-vs-fix pulled out to anvil#327, pending the free ANVIL_RTK_DISABLED A/B (fix path if
+rtk rip-vs-fix pulled out to draupnir#327, pending the free DRAUPNIR_RTK_DISABLED A/B (fix path if
 kept: exit-code cross-check — never claim clean when exit != 0 — plus
 truncation-aware summaries, tail-not-head capture, skip wrapping
 redirected commands, RTK_TEE_DIR into the workspace); container fix
@@ -337,25 +337,25 @@ located (deepswe_agent_engine.py prep block + solver env prefix);
 edit atomicity recommendation: in-memory apply, single write (we lack
 omp's fuzzy fallback, so mid-batch failures are likelier for us);
 whole-project verification dropped as not-ours (benchmark fitting);
-compaction replay filed as anvil#326.
+compaction replay filed as draupnir#326.
 
 **Landed (2026-08-01 midday)**: timeout_seconds schema ([10..3600],
 deployment cap env, default 60s->120s) + edit-batch recovery script,
-anvil `48c7450`; deterministic whitespace ladder for edit matching
+draupnir `48c7450`; deterministic whitespace ladder for edit matching
 (brokk-EditBlock-style tiers, no fuzzy scoring per owner) `7abbe25`,
 gates independently re-run green (1362+19). Solver git identity +
 go/bin PATH landed in brokkbench `0e415fec` — the audit's "identity
 unset" was a prep-vs-solver HOME split: prep's `git config --global`
 wrote to /root while the solver reads /opt/work/home. Review churn
-ticketed as mjolnir#535; rtk cluster as anvil#327 (rip-vs-fix pending
-the ANVIL_RTK_DISABLED A/B). Trace provenance corrected: the audit set
+ticketed as mjolnir#535; rtk cluster as draupnir#327 (rip-vs-fix pending
+the DRAUPNIR_RTK_DISABLED A/B). Trace provenance corrected: the audit set
 was all run 7; run 6 verified DR-free (0 review sessions in 3 spot
 checks). Ready next: fresh musl snapshot -> replication run, optionally
 as the rtk A/B.
 
 ### Run 8 (replication, all fixes) — killed at max 15, 2026-08-01 evening
 
-Config: run-7 invocation verbatim; anvil 0.24.2 musl `0b228ad4`
+Config: run-7 invocation verbatim; draupnir 0.24.2 musl `0b228ad4`
 (compaction digests #326, rtk replaced by vendored oh-my-pi minimizer,
 timeout_seconds, whitespace ladder, batch recovery script), engine
 git-identity/PATH fix live. **Killed per policy at 9W/5L of 14 graded —
@@ -429,19 +429,19 @@ probe arm ran DR-off. Decision pending: full-20 of a probe arm.
 
 ### Prod generalization landed; internal A/B begins (2026-08-02)
 
-Plan approved and executed: anvil gains a default-on # Completion
+Plan approved and executed: draupnir gains a default-on # Completion
 section (checklist-bounded episodes, no speculative re-verification),
-cross-type batching guidance, and update_plan batching (anvil
+cross-type batching guidance, and update_plan batching (draupnir
 `34895aa`); mj's review correction loop is bounded
 (max_correction_rounds default 1, verification-only re-reviews,
 mjolnir `3c528d3`, closes mj#535); the harness computes costUsd from
 usageByModel tokens (fail-to-None, never silent zero) and the fatal
-legacy --thor path is gone (brokkbench `32a53d3`). Snapshots: anvil
+legacy --thor path is gone (brokkbench `32a53d3`). Snapshots: draupnir
 0.24.2 `12b3909a`, mj 1.3.0 `27fa97af`. Smoke (fd, no MJ env pins):
 SUCCESS 43/43, 45 steps, costUsd $1.90 populated, 8m.
 
-Benchmark reframed per owner: **vanilla-sol-on-anvil vs
-sol+luna-on-anvil**, both arms DR-off, 2 runs/arm with run 2 gated on
+Benchmark reframed per owner: **vanilla-sol-on-draupnir vs
+sol+luna-on-draupnir**, both arms DR-off, 2 runs/arm with run 2 gated on
 run-1 sanity; the bar is the other arm, not the overfit mswe published
 numbers. Arm A (solo) run 1 launched.
 
@@ -462,7 +462,7 @@ obsidian, cattrs, sqlfmt) confirm the near-miss band is stochastic.
 
 | arm | r1 | r2 | total | avg $/task |
 |---|---|---|---|---|
-| solo sol (vanilla-sol-on-anvil) | 14/20 $3.75 | 13/20 $3.81 | **27/40 (67.5%)** | **$3.78** |
+| solo sol (vanilla-sol-on-draupnir) | 14/20 $3.75 | 13/20 $3.81 | **27/40 (67.5%)** | **$3.78** |
 | sol+luna (duo) | 14/20 $2.71 | 17/20 $3.74 | **31/40 (77.5%)** | **$3.23** |
 
 Duo leads on BOTH axes: +4 tasks and -$0.55/task — luna absorbing
@@ -482,13 +482,13 @@ reached via scaffold economics rather than coordination machinery.
 Open follow-ups: audit ABr1's tengo 0/23-at-$0.41 early death and
 obsidian p2p loss (duo-specific failure modes, both flipped to wins in
 r2); the completion protocol + round cap are now default-on in prod
-anvil/mj pending real-session validation per the no-benchmark-fitting
+draupnir/mj pending real-session validation per the no-benchmark-fitting
 rule.
 
 ### CORRECTION (2026-08-02, prompted by owner): A/B costs were understated; duo cost advantage retracted
 
 The harness cost helper subtracted cachedInputTokens from inputTokens
-(trials.json convention), but mj/anvil rows report inputTokens as
+(trials.json convention), but mj/draupnir rows report inputTokens as
 FRESH-ONLY — every fresh-input dollar was zeroed and reasoning tokens
 skipped output billing (recorded $3.1394 reproduced exactly from the
 buggy formula; my spec error in the codex brief). True costs, recomputed
@@ -515,7 +515,7 @@ brokkbench e3a01c4ad02.
 
 ### Substitutive retest + duo+DR (2026-08-02/03): scores, and the trace verdict
 
-Runs (all anvil 12b3909a / mj 994bb619, substitutive delegation
+Runs (all draupnir 12b3909a / mj 994bb619, substitutive delegation
 protocol, completion protocol on, 20 threads):
 
 | arm | score | true $/task | notes |
@@ -711,7 +711,7 @@ win came with a pass-0 clean verdict and zero findings (variance, not
 oracle); obsidian and sqlfmt, r1 review conversions, regressed to
 losses. Review value still reads ~+1/run with high per-task churn.
 
-**mj bug found (filed anvil#339, belongs in BrokkAi/mjolnir):**
+**mj bug found (filed draupnir#339, belongs in BrokkAi/mjolnir):**
 headless never exits when `subagent_cancel` claims the last
 outstanding report. `SubagentReportBus.pending` gates shutdown
 (headless.rs:533) and is decremented only in the orchestrator's
@@ -820,7 +820,7 @@ Requeue scorecard: 2 of 4 timeouts were pure clock deaths, 2 were
 real losses hiding behind the cap.
 
 FIXES LANDED:
-- anvil 9d79a27: stall detection 60s -> 30s
+- draupnir 9d79a27: stall detection 60s -> 30s
   (DEFAULT_INTER_CHUNK_TIMEOUT_SECS). Deadline resets per meaningful
   chunk, so this only shortens DEAD-stream detection; 98/99 observed
   stalls were luna. --llm-stall-timeout-secs still overrides.
@@ -863,7 +863,7 @@ un-requeued timeouts.**
 
 Seeds duoDR-r3 / duoDR-r4 launched (10800s, 20 threads, r4 auto-fires
 at r3 >= 17/20 resolved) on:
-- anvil musl 37c44b68 (30s stall detection)
+- draupnir musl 37c44b68 (30s stall detection)
 - mj musl 83a6160d @ merged HEAD 9d1609b = my a0b1820 (oracle review)
   + 6198fa5 (park-eligible work) + OWNER'S 92e6e7d ("use analyze_diff
   file changes in review", 394 lines in discrete_review.rs)
@@ -894,10 +894,10 @@ same config stalls 13x less. Presumed mechanism: blocked outbound
 attempts hang until the inter-chunk deadline. Luna is not the
 problem; my seal was.
 
-Consequence: anvil 9d79a27 (60s -> 30s) was aimed at a phantom, and
+Consequence: draupnir 9d79a27 (60s -> 30s) was aimed at a phantom, and
 on a healthy network it TRIPLED the abort rate (2.4 vs 0.8) with
 nothing left to detect — every abort re-runs a whole request.
-Reverted in anvil 67a89c6, with the measurement recorded in the
+Reverted in draupnir 67a89c6, with the measurement recorded in the
 constant's doc comment so it is not re-tried.
 
 NOTE: the musl binary was deliberately NOT rebuilt while duoDR-r3/r4
@@ -908,7 +908,7 @@ revert lands in the next build.
 
 duoDR-s1 = **13/20**, zero timeouts, $4.86/graded task, 7844s.
 duoDR-s2 = **13/20**, 1 timeout (opa-template), $4.56/task, 16154s.
-Both on: anvil ef37e270 (60s stall, reverted), mj 83a6160d @ merged
+Both on: draupnir ef37e270 (60s stall, reverted), mj 83a6160d @ merged
 HEAD (my oracle/advisory review + park rule + owner's 92e6e7d
 analyze_diff), brokkbench 675314114b0 (blocked_hosts), and
 **--bifrost-bin staging the local 0.8.18 binary**.
@@ -916,7 +916,7 @@ analyze_diff), brokkbench 675314114b0 (blocked_hosts), and
 **Review tooling confirmed healthy** (the reason r3/r4 were scrapped):
 s1 53 symbol-tool calls / 12 failed; s2 66 / 7. Compare r1 48/10
 (healthy), r2 12/25 and r3 14/31 (broken). Root cause of the breakage:
-anvil provisions bifrost by downloading
+draupnir provisions bifrost by downloading
 github.com/BrokkAi/bifrost/releases — which the blocked_hosts denylist
 blocks. --bifrost-bin sidesteps it; the harness already had the flag.
 

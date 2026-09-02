@@ -1,14 +1,14 @@
 # Follow-up tickets from the permission-classifier discovery (2026-07-28)
 
-Filed on GitHub: mjolnir#506 (handshake, mj half), anvil#311 (effective-mode
-reporting), anvil#312 (classifier hygiene), anvil#313 (cheaper classifier
+Filed on GitHub: mjolnir#506 (handshake, mj half), draupnir#311 (effective-mode
+reporting), draupnir#312 (classifier hygiene), draupnir#313 (cheaper classifier
 model). Item 1 (mj flag plumbing) landed as mjolnir 83b35b8.
 
-Context: mjolnir's `--permission-mode bypassPermissions` never reached anvil
+Context: mjolnir's `--permission-mode bypassPermissions` never reached draupnir
 over ACP; every benchmark session ran in Auto mode and paid an untraced
 classifier LLM call per gated tool call (~52% of wall-clock, 19% spurious
 denials). Deployment fix landed: `BROKK_ACP_PERMISSION_MODE` env default in
-anvil + staged by brokkbench. These tickets are the rest of the story.
+draupnir + staged by brokkbench. These tickets are the rest of the story.
 
 ## 1. Fix the mj flag plumbing (protocol-correct fix) — DONE
 
@@ -17,9 +17,9 @@ copy was the deleted one). True dead-end was TWO-fold: interactive sessions
 built RuntimeRoleConfig with permission: None, and configure_permissions
 mapped (AdapterKind::Custom, _) to None — benchmark runs are always
 custom/bpr-agent/<wire>, so they were in the one config hole. Custom now
-reuses the Anvil permission_mode mapping, gated on the server advertising the
+reuses the Draupnir permission_mode mapping, gated on the server advertising the
 option; failures warn loudly. Unpushed; benchmark binaries still pinned to
-mj-6147059 (harmless — the anvil env default covers benchmarks regardless).
+mj-6147059 (harmless — the draupnir env default covers benchmarks regardless).
 
 ## 2. Classifier hygiene for Auto-mode users
 
@@ -54,6 +54,6 @@ stays honest.
 ## 4. Permission-mode handshake assertion
 
 The failure class was "client believes it set a mode; nothing verified it."
-Anvil should report the effective permission mode in the session/new response
+Draupnir should report the effective permission mode in the session/new response
 (or an early log line the harness asserts on), and bpr's smoke path should
 fail loudly when the effective mode differs from the requested one.

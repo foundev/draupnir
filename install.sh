@@ -3,10 +3,10 @@ set -euo pipefail
 
 SCRIPT_VERSION="1.0.0"
 
-OWNER="${ANVIL_GITHUB_OWNER:-BrokkAi}"
-REPO="anvil"
-BIN_NAME="anvil"
-INSTALL_DIR="${ANVIL_INSTALL_DIR:-${INSTALL_DIR:-$HOME/.local/bin}}"
+OWNER="${DRAUPNIR_GITHUB_OWNER:-BrokkAi}"
+REPO="draupnir"
+BIN_NAME="draupnir"
+INSTALL_DIR="${DRAUPNIR_INSTALL_DIR:-${INSTALL_DIR:-$HOME/.local/bin}}"
 
 TMP_DIR=""
 OS_FAMILY=""
@@ -14,24 +14,24 @@ ARCH=""
 RUST_TARGET=""
 
 log() {
-  printf 'anvil-installer: %s\n' "$*"
+  printf 'draupnir-installer: %s\n' "$*"
 }
 
 warn() {
-  printf 'anvil-installer: warning: %s\n' "$*" >&2
+  printf 'draupnir-installer: warning: %s\n' "$*" >&2
 }
 
 die() {
-  printf 'anvil-installer: error: %s\n' "$*" >&2
+  printf 'draupnir-installer: error: %s\n' "$*" >&2
   exit 1
 }
 
 usage() {
   cat <<EOF
-Install the released Anvil binary.
+Install the released Draupnir binary.
 
 Usage:
-  curl -fsSL https://raw.githubusercontent.com/BrokkAi/anvil/refs/heads/master/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/BrokkAi/draupnir/refs/heads/master/install.sh | bash
 
 Platforms:
   macOS            Apple Silicon and Intel, via the universal binary.
@@ -44,9 +44,9 @@ Platforms:
 
 Environment:
   INSTALL_DIR              Install directory. Defaults to ~/.local/bin.
-  ANVIL_INSTALL_DIR        Same as INSTALL_DIR, with higher precedence.
-  ANVIL_GITHUB_OWNER       GitHub owner to download from. Defaults to BrokkAi.
-  ANVIL_VERSION            Optional release tag to install, for example v0.24.2.
+  DRAUPNIR_INSTALL_DIR        Same as INSTALL_DIR, with higher precedence.
+  DRAUPNIR_GITHUB_OWNER       GitHub owner to download from. Defaults to BrokkAi.
+  DRAUPNIR_VERSION            Optional release tag to install, for example v0.24.2.
   GITHUB_TOKEN             Optional token for GitHub API rate limits.
   PROFILE                  Optional shell profile to update when INSTALL_DIR is not on PATH.
 EOF
@@ -112,15 +112,15 @@ detect_platform() {
       fi
       ;;
     MINGW* | MSYS* | CYGWIN*)
-      die "Windows release assets are not installed by this script. Download the archive from https://github.com/${OWNER}/${REPO}/releases, install from source with 'cargo install brokk-anvil --locked', or run this script in WSL."
+      die "Windows release assets are not installed by this script. Download the archive from https://github.com/${OWNER}/${REPO}/releases, install from source with 'cargo install brokk-draupnir --locked', or run this script in WSL."
       ;;
     *) die "unsupported OS: ${uname_s}" ;;
   esac
 }
 
 release_endpoint() {
-  if [[ -n "${ANVIL_VERSION:-}" ]]; then
-    printf 'https://api.github.com/repos/%s/%s/releases/tags/%s\n' "$OWNER" "$REPO" "$ANVIL_VERSION"
+  if [[ -n "${DRAUPNIR_VERSION:-}" ]]; then
+    printf 'https://api.github.com/repos/%s/%s/releases/tags/%s\n' "$OWNER" "$REPO" "$DRAUPNIR_VERSION"
   else
     printf 'https://api.github.com/repos/%s/%s/releases/latest\n' "$OWNER" "$REPO"
   fi
@@ -143,7 +143,7 @@ available_assets() {
 
 select_asset() {
   local release_file="$1" tag="$2" url name
-  local expected="brokk-anvil-${tag}-${RUST_TARGET}.zip"
+  local expected="brokk-draupnir-${tag}-${RUST_TARGET}.zip"
 
   while IFS= read -r url; do
     name="${url##*/}"
@@ -153,7 +153,7 @@ select_asset() {
     fi
   done < <(release_asset_urls "$release_file")
 
-  die "no Anvil asset found for ${OS_FAMILY}/${ARCH} in ${OWNER}/${REPO} release ${tag}. Available assets: $(available_assets "$release_file")"
+  die "no Draupnir asset found for ${OS_FAMILY}/${ARCH} in ${OWNER}/${REPO} release ${tag}. Available assets: $(available_assets "$release_file")"
 }
 
 checksum_url_for() {
@@ -247,7 +247,7 @@ append_install_dir_to_profile() {
   fi
 
   {
-    printf '\n# Added by Anvil installer\n'
+    printf '\n# Added by Draupnir installer\n'
     printf '%s\n' "$line"
   } >>"$profile" || {
     warn "could not update ${profile}; add this manually: ${line}"
@@ -278,7 +278,7 @@ ensure_install_dir_on_path() {
     log "add this to ${profile}: ${line}"
     return 0
   fi
-  printf 'anvil-installer: %s is not on PATH. Add it to %s? [Y/n] ' "$INSTALL_DIR" "$profile" >/dev/tty
+  printf 'draupnir-installer: %s is not on PATH. Add it to %s? [Y/n] ' "$INSTALL_DIR" "$profile" >/dev/tty
   read -r answer </dev/tty || answer=""
   case "$answer" in
     "" | y | Y | yes | YES)
@@ -308,7 +308,7 @@ install_binary() {
   log "installed ${BIN_NAME} to ${dest}"
 }
 
-install_anvil() {
+install_draupnir() {
   local release_file="${TMP_DIR}/release.json" tag asset_url asset_name asset_file extract_dir src
   download_file "$(release_endpoint)" "$release_file"
   tag="$(release_tag "$release_file")"
@@ -339,10 +339,10 @@ main() {
   require_command find
   detect_platform
   ensure_install_dir
-  TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/anvil-installer.XXXXXX")"
+  TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/draupnir-installer.XXXXXX")"
   trap cleanup EXIT
   log "installing for ${OS_FAMILY}/${ARCH} into ${INSTALL_DIR} (script ${SCRIPT_VERSION})"
-  install_anvil
+  install_draupnir
   ensure_install_dir_on_path
   log "done"
 }

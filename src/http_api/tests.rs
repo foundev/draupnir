@@ -1,6 +1,6 @@
 //! In-process tests for the HTTP API: a real axum server bound to a
 //! localhost ephemeral port, exercised with `reqwest`. The daemon-level
-//! smoke test (spawning the `anvil serve` binary) lives in
+//! smoke test (spawning the `draupnir serve` binary) lives in
 //! `tests/http_smoke.rs`.
 
 use std::net::SocketAddr;

@@ -1,7 +1,7 @@
 # probe-sl3 postmortem: 28/35, the simplification validated, and the residual named
 
 *2026-07-29. Five Opus audits over the seven non-successes of probe-sl3
-(binary anvil-99be76e: no register, briefs-never-restate, adjudication rule,
+(binary draupnir-99be76e: no register, briefs-never-restate, adjudication rule,
 targeted dual reading, required max_steps<=75, continuation-on-cap, CAPPED
 markers). Full reports in session transcripts; this is the synthesis.*
 
