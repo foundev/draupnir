@@ -30,7 +30,7 @@ A client should:
 6. support cancellation; and
 7. preserve the session identifier needed for later lifecycle requests.
 
-Clients with ACP elicitation forms can keep OpenRouter, Bedrock, and DeepSeek credential fields out of the transcript. Text-only clients retain command fallbacks that explicitly warn when a pasted secret will become transcript content.
+Clients with ACP elicitation forms can keep OpenRouter and DeepSeek credential fields out of the transcript. Text-only clients retain command fallbacks that explicitly warn when a pasted secret will become transcript content.
 
 ## Configuration Ownership
 

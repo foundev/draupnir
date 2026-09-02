@@ -228,12 +228,6 @@ struct StreamEvent {
 
 #[derive(Debug, Deserialize)]
 struct ResponseFinal {
-    /// The Responses API's server-assigned response id (`resp_...`). Present
-    /// on `response.created` and confirmed on `response.completed`; captured
-    /// so the Bedrock Mantle continuation cache can chain the next turn onto
-    /// it via `previous_response_id` (see `ResponsesStreamOutcome`).
-    #[serde(default)]
-    id: Option<String>,
     #[serde(default)]
     error: Option<ResponseError>,
     #[serde(default)]
@@ -334,17 +328,10 @@ enum OutputItemContent {
     Other,
 }
 
-/// Result of driving a Responses API SSE stream to completion: the parsed
-/// chat response plus the server-assigned `response_id` (captured from
-/// `response.created` and reconfirmed on `response.completed`). Bedrock
-/// Mantle's continuation cache (`invoke_responses_model`) stores this id
-/// keyed by the message context that produced it, so the next turn can
-/// chain onto it via `previous_response_id` instead of resending the whole
-/// conversation.
+/// Result of driving a Responses API SSE stream to completion.
 #[derive(Debug)]
 pub(crate) struct ResponsesStreamOutcome {
     pub(crate) response: LlmResponse,
-    pub(crate) response_id: Option<String>,
 }
 
 pub(crate) async fn drive_responses_sse_stream<S>(
@@ -366,7 +353,6 @@ where
     let mut failure: Option<anyhow::Error> = None;
     let mut usage = TokenUsage::default();
     let mut deltas_received = false;
-    let mut response_id: Option<String> = None;
 
     loop {
         tokio::select! {
@@ -436,11 +422,6 @@ where
                     };
                     match event.kind.as_str() {
                         "response.created" => {
-                            if let Some(final_body) = event.response
-                                && let Some(id) = final_body.id
-                            {
-                                response_id = Some(id);
-                            }
                             made_progress = true;
                         }
                         "response.output_text.delta" => {
@@ -490,13 +471,10 @@ where
                             }
                         }
                         "response.completed" => {
-                            if let Some(final_body) = event.response {
-                                if let Some(id) = final_body.id {
-                                    response_id = Some(id);
-                                }
-                                if let Some(u) = final_body.usage {
-                                    usage = u.into_usage();
-                                }
+                            if let Some(final_body) = event.response
+                                && let Some(u) = final_body.usage
+                            {
+                                usage = u.into_usage();
                             }
                             completed = true;
                             break;
@@ -590,7 +568,6 @@ where
                 usage,
                 codex_reasoning: None,
             },
-            response_id,
         });
     }
     if !completed {
@@ -607,7 +584,6 @@ where
                 usage,
                 codex_reasoning: None,
             },
-            response_id,
         })
     } else {
         Ok(ResponsesStreamOutcome {
@@ -618,7 +594,6 @@ where
                 usage,
                 codex_reasoning: None,
             },
-            response_id,
         })
     }
 }
@@ -834,56 +809,6 @@ mod tests {
             other => panic!("expected Text, got {other:?}"),
         }
         assert_eq!(collected.lock().unwrap().as_str(), "ok");
-    }
-
-    #[tokio::test]
-    async fn shared_responses_stream_captures_response_id_from_created_event() {
-        let raw = concat!(
-            "data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_abc123\"}}\n\n",
-            "data: {\"type\":\"response.output_text.delta\",\"delta\":\"ok\"}\n\n",
-            "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_abc123\"}}\n\n",
-        );
-        let stream = stream::iter(vec![Ok(raw.as_bytes().to_vec())]);
-        let (on_token, _) = collect_tokens();
-
-        let outcome = drive_responses_sse_stream(
-            stream,
-            on_token,
-            noop_sink(),
-            CancellationToken::new(),
-            IdleTimeouts::uniform(std::time::Duration::from_secs(5)),
-        )
-        .await
-        .expect("response.completed should finish the stream");
-
-        assert_eq!(outcome.response_id.as_deref(), Some("resp_abc123"));
-    }
-
-    #[tokio::test]
-    async fn shared_responses_stream_confirms_response_id_on_completed_even_without_created() {
-        // Some providers may only echo the id on `response.completed`; make
-        // sure that alone is enough to capture it.
-        let raw = concat!(
-            "data: {\"type\":\"response.output_text.delta\",\"delta\":\"ok\"}\n\n",
-            "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_only_on_completed\"}}\n\n",
-        );
-        let stream = stream::iter(vec![Ok(raw.as_bytes().to_vec())]);
-        let (on_token, _) = collect_tokens();
-
-        let outcome = drive_responses_sse_stream(
-            stream,
-            on_token,
-            noop_sink(),
-            CancellationToken::new(),
-            IdleTimeouts::uniform(std::time::Duration::from_secs(5)),
-        )
-        .await
-        .expect("response.completed should finish the stream");
-
-        assert_eq!(
-            outcome.response_id.as_deref(),
-            Some("resp_only_on_completed")
-        );
     }
 
     #[tokio::test]

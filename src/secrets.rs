@@ -1,7 +1,7 @@
 //! Consolidated on-disk store for provider setup secrets.
 //!
 //! Historically every provider grew its own credential file --
-//! `openrouter.json`, `bedrock.json`, and DeepSeek had no file at all
+//! `openrouter.json`, while DeepSeek had no file at all
 //! (env var only). This module gives them one home:
 //!
 //! - `~/.config/brokk/secrets.json` on Linux (or `$XDG_CONFIG_HOME`),
@@ -14,15 +14,11 @@
 //! per-provider files it replaces.
 //!
 //! Division of responsibility:
-//! - Env vars (`DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY`,
-//!   `AWS_BEARER_TOKEN_BEDROCK`) always win at the call sites; this file
+//! - Env vars (`DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY`) always win at the
+//!   call sites; this file
 //!   is the persistent fallback written by the `/setup` flows.
 //! - Codex stays in `~/.codex/auth.json`: that file is owned by the
 //!   third-party Codex CLI integration and must remain compatible with it.
-//! - The legacy `~/.secrets/` Bedrock token files are still read as a
-//!   fallback by `bedrock_client` but are never migrated or deleted here:
-//!   that directory is shared with other tools, so Draupnir only removes
-//!   those files on an explicit `/setup bedrock disconnect`.
 //!
 //! [`migrate_legacy_files`] folds the Draupnir-owned per-provider files into
 //! `secrets.json` once at startup (copy, then delete only after the
@@ -45,7 +41,6 @@ use std::sync::Mutex;
 use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 
-use crate::bedrock_auth::BedrockAuth;
 use crate::deepseek_auth::DeepSeekAuth;
 use crate::openrouter_auth::OpenRouterAuth;
 
@@ -58,8 +53,6 @@ pub struct SetupSecrets {
     pub deepseek: Option<DeepSeekAuth>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub openrouter: Option<OpenRouterAuth>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub bedrock: Option<BedrockAuth>,
 }
 
 /// Resolve `<config>/brokk/secrets.json`. Honours `$BROKK_CONFIG_HOME`
@@ -194,9 +187,8 @@ pub(crate) fn remove_legacy_credential_file(path: &Path) {
     }
 }
 
-/// One-time consolidation of the Draupnir-owned legacy per-provider
-/// credential files (`openrouter.json`, `bedrock.json`) into
-/// `secrets.json`, called once at startup.
+/// One-time consolidation of the Draupnir-owned legacy `openrouter.json`
+/// credential file into `secrets.json`, called once at startup.
 ///
 /// Copy-then-delete: a legacy file is only removed after the consolidated
 /// file has been written successfully, so a crash or write failure can
@@ -242,23 +234,6 @@ pub fn migrate_legacy_files() {
         Ok(None) => {}
         Err(e) => tracing::warn!("leaving legacy openrouter.json in place: {e:#}"),
     }
-    match crate::bedrock_auth::read_legacy_file() {
-        Ok(Some((path, auth))) => {
-            if secrets.bedrock.is_none() {
-                secrets.bedrock = Some(auth);
-                changed = true;
-            } else {
-                tracing::info!(
-                    "legacy {} is shadowed by the consolidated store; discarding its contents",
-                    path.display()
-                );
-            }
-            migrated_paths.push(path);
-        }
-        Ok(None) => {}
-        Err(e) => tracing::warn!("leaving legacy bedrock.json in place: {e:#}"),
-    }
-
     if changed {
         if let Err(e) = write(&secrets) {
             tracing::warn!("secrets migration failed to write secrets.json: {e:#}");
@@ -317,20 +292,12 @@ mod tests {
             openrouter: Some(OpenRouterAuth {
                 api_key: "sk-or".into(),
             }),
-            bedrock: Some(BedrockAuth {
-                bearer_token: "aws-token".into(),
-                region: Some("us-east-1".into()),
-                default_model: None,
-            }),
         })
         .unwrap();
 
         let got = read().unwrap().expect("secrets present after write");
         assert_eq!(got.deepseek.unwrap().api_key, "sk-ds");
         assert_eq!(got.openrouter.unwrap().api_key, "sk-or");
-        let bedrock = got.bedrock.unwrap();
-        assert_eq!(bedrock.bearer_token, "aws-token");
-        assert_eq!(bedrock.region.as_deref(), Some("us-east-1"));
     }
 
     #[cfg(unix)]
@@ -385,30 +352,17 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let _scope = EnvScope::set("BROKK_CONFIG_HOME", tmp.path());
 
-        // Seed both legacy files the way the pre-consolidation code wrote them.
+        // Seed the legacy OpenRouter file the way the pre-consolidation code wrote it.
         let openrouter_legacy = tmp.path().join("openrouter.json");
         std::fs::write(&openrouter_legacy, r#"{"api_key":"sk-or-legacy"}"#).unwrap();
-        let bedrock_legacy = tmp.path().join("bedrock.json");
-        std::fs::write(
-            &bedrock_legacy,
-            r#"{"bearer_token":"aws-legacy","region":"eu-west-1"}"#,
-        )
-        .unwrap();
 
         migrate_legacy_files();
 
         let secrets = read().unwrap().expect("secrets.json created");
         assert_eq!(secrets.openrouter.unwrap().api_key, "sk-or-legacy");
-        let bedrock = secrets.bedrock.unwrap();
-        assert_eq!(bedrock.bearer_token, "aws-legacy");
-        assert_eq!(bedrock.region.as_deref(), Some("eu-west-1"));
         assert!(
             !openrouter_legacy.exists(),
             "legacy openrouter.json removed after successful migration"
-        );
-        assert!(
-            !bedrock_legacy.exists(),
-            "legacy bedrock.json removed after successful migration"
         );
     }
 

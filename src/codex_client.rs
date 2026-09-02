@@ -212,7 +212,7 @@ pub struct CodexClient {
     /// next turn on the same conversation repeats that identity and lands on
     /// the same warm prompt cache. See `prompt_cache_identity_for`.
     ///
-    /// In-process and process-lifetime, like the Bedrock chain cache: a
+    /// In-process and process-lifetime: a
     /// session resumed in a *new* process starts a fresh identity and rewarms
     /// from cold. That costs one turn's prefix; making it survive would mean
     /// persisting the identity with the session, which is a session-storage
@@ -277,7 +277,7 @@ impl CodexClient {
     }
 
     /// Test client pointed at a local mock of the Responses endpoint. Mirrors
-    /// `BedrockClient::with_base_urls`: the rest of the request path -- header
+    /// the production client: the rest of the request path -- header
     /// set, body shape, identity bookkeeping -- is the production one.
     #[cfg(test)]
     fn with_responses_url(responses_url: String) -> Self {
@@ -1107,8 +1107,8 @@ pub(crate) struct ResponsesRequest {
     /// `HTTP 400 {"detail":"Store must be set to false"}` (measured against
     /// `chatgpt.com/backend-api/codex/responses` on 2026-08-18 with
     /// ChatGPT-plan auth). That rejection is also why this client cannot
-    /// chain turns with `previous_response_id` the way the Bedrock Mantle
-    /// client does: there is no stored response to chain onto. See
+    /// chain turns with `previous_response_id`: there is no stored response to
+    /// chain onto. See
     /// `build_responses_request` for what it does instead.
     pub(crate) store: bool,
     /// Ask for reasoning items to come back with their encrypted payload.
@@ -1223,8 +1223,8 @@ pub(crate) struct ResponsesToolDef {
 /// `function_call` item per call.
 ///
 /// The whole conversation goes out on every turn. This backend refuses
-/// `store: true`, so the server-side `previous_response_id` chaining the
-/// Bedrock Mantle client uses -- send only the delta, let the server hold the
+/// `store: true`, so server-side `previous_response_id` chaining -- send only
+/// the delta, let the server hold the
 /// prefix -- is not available here. What is available is the server's own
 /// prompt cache over the resent prefix, and that cache has to be *routed to*:
 /// measured against the live backend on 2026-08-18 with a 3.3k-token prefix
@@ -2378,7 +2378,7 @@ mod tests {
     fn build_request_never_asks_the_server_to_store_or_chain_the_conversation() {
         // This backend answers `store: true` with
         // `HTTP 400 {"detail":"Store must be set to false"}`, so the
-        // server-side chaining the Bedrock Mantle client uses is off the
+        // server-side response chaining is off the
         // table and brokk keeps owning the conversation. What we do send is
         // the routing envelope: the conversation's cache key, and the
         // encrypted-reasoning include.
@@ -2579,7 +2579,7 @@ mod tests {
 
     #[tokio::test]
     async fn prompt_cache_identity_survives_a_failed_turn_and_is_reused_on_retry() {
-        // The Bedrock chain evicts its cached prefixes when a chained call
+        // A server-side chain may evict cached prefixes when a chained call
         // fails, because a failure may mean the stored response is gone. Here
         // nothing is stored server-side: the identity is ours, it cannot
         // expire, and the prefix earlier turns warmed is still the best thing

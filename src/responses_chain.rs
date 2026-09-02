@@ -5,16 +5,13 @@
 //! server's prompt cache to keep matching as the conversation grows has to
 //! recognize "this call continues the call I made last turn" on its own.
 //!
-//! Both Responses API backends need exactly that recognition, and both do it
-//! the same way: hash the ordered message context, remember what that context
+//! Responses API backends need exactly that recognition, and they do it the
+//! same way: hash the ordered message context, remember what that context
 //! produced, and on the next turn look for the largest stored prefix of the
-//! new message list. What the two backends *store* under that key differs --
-//! Bedrock Mantle stores the server-assigned `response_id` it chains onto via
-//! `previous_response_id`, while the ChatGPT (codex) backend stores the
-//! session identity it repeats in the request so the server routes the turn
-//! back to the same warm prompt cache -- so the cache is generic over the
-//! stored value. The prefix matching, the divergence reset, and the eviction
-//! behavior are shared, not reimplemented per backend.
+//! new message list. Backends can store different continuation values under
+//! that key, so the cache is generic over the stored value. The prefix
+//! matching, the divergence reset, and the eviction behavior are shared,
+//! not reimplemented per backend.
 
 use std::collections::{HashMap, VecDeque};
 
@@ -59,28 +56,6 @@ impl<V: Clone> ResponsesChainCache<V> {
             }
         }
         self.entries.insert(key, value);
-    }
-
-    pub(crate) fn evict(&mut self, key: u64) {
-        self.entries.remove(&key);
-        self.order.retain(|k| *k != key);
-    }
-
-    /// Drops every entry `find_responses_continuation` could still match for
-    /// `messages`, so the next call on this conversation starts fresh.
-    pub(crate) fn evict_context_prefixes(&mut self, messages: &[ChatMessage]) -> usize {
-        let mut evicted = 0;
-        for a in (0..messages.len()).rev() {
-            if messages[a].role != "assistant" {
-                continue;
-            }
-            let key = hash_responses_context(&messages[..a]);
-            if self.entries.contains_key(&key) {
-                self.evict(key);
-                evicted += 1;
-            }
-        }
-        evicted
     }
 }
 
@@ -139,9 +114,8 @@ fn hash_responses_message(msg: &ChatMessage, hasher: &mut impl std::hash::Hasher
 /// `hash(messages[0..a])`: a hit means messages `0..a` were exactly the
 /// input of a previously stored response, and `messages[a]` is that
 /// response's assistant turn now echoed back into history. The first
-/// (largest-`a`) hit wins. Returns `(a, value)`; a `previous_response_id`
-/// caller sends that id plus `messages[a+1..]` as the new input, and a
-/// prompt-cache caller reuses the stored session identity for the turn.
+/// (largest-`a`) hit wins. Returns `(a, value)`; a prompt-cache caller reuses
+/// the stored session identity for the turn.
 ///
 /// Returns `None` on a fresh conversation, an evicted/never-seen prefix, or
 /// a first turn -- callers fall back to a fresh, unchained turn.
@@ -159,29 +133,4 @@ pub(crate) fn find_responses_continuation<V>(
         }
     }
     None
-}
-
-/// Heuristic match for a Responses API error indicating `previous_response_id`
-/// was unknown, expired, or otherwise invalid, so the caller can evict the
-/// cache entry and retry once with the full input. The exact error-body
-/// shape isn't documented; this defensively matches a client-error status
-/// plus the field name and a rejection-ish word in the body rather than a
-/// single exact message.
-pub(crate) fn looks_like_expired_previous_response_id(
-    status: reqwest::StatusCode,
-    body: &str,
-) -> bool {
-    if !status.is_client_error() {
-        return false;
-    }
-    let lower = body.to_ascii_lowercase();
-    (lower.contains("previous_response_id")
-        && (lower.contains("not found")
-            || lower.contains("not exist")
-            || lower.contains("expired")
-            || lower.contains("invalid")
-            || lower.contains("unknown")
-            || lower.contains("no longer")))
-        || lower.contains("not_found_error")
-        || (lower.contains("response") && lower.contains("not found"))
 }

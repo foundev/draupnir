@@ -332,7 +332,6 @@ fn spawn_serve(home: &std::path::Path, provider_url: &str) -> ServeDaemon {
         .env("DRAUPNIR_TEST_DISABLE_TURN_RECAP", "1")
         .env_remove("OPENAI_API_KEY")
         .env_remove("OPENROUTER_API_KEY")
-        .env_remove("BEDROCK_API_KEY")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())

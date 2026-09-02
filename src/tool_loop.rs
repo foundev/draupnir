@@ -6459,21 +6459,21 @@ mod tests {
             ..TokenUsage::default()
         };
         let map = usage_by_model(
-            "bedrock::luna",
+            "deepseek::luna",
             total,
             BTreeMap::from([("deepseek::flash".to_string(), external)]),
         );
         assert_eq!(map["deepseek::flash"].input_tokens, 30);
-        assert_eq!(map["bedrock::luna"].input_tokens, 70);
-        assert_eq!(map["bedrock::luna"].output_tokens, 15);
+        assert_eq!(map["deepseek::luna"].input_tokens, 70);
+        assert_eq!(map["deepseek::luna"].output_tokens, 15);
 
         let fallback = usage_by_model(
-            "bedrock::luna",
+            "deepseek::luna",
             total,
-            BTreeMap::from([("bedrock::luna".to_string(), external)]),
+            BTreeMap::from([("deepseek::luna".to_string(), external)]),
         );
         assert_eq!(fallback.len(), 1);
-        assert_eq!(fallback["bedrock::luna"].input_tokens, 100);
+        assert_eq!(fallback["deepseek::luna"].input_tokens, 100);
     }
     use crate::llm_client::{
         FunctionCall, FunctionDef, IncompleteStreamError, OutputBudgetExhaustedError,
@@ -8283,7 +8283,7 @@ mod tests {
         let response = stream_chat_with_transient_retry(
             &backend,
             0,
-            "bedrock::openai.gpt-5.4",
+            "codex::gpt-5.4",
             &[ChatMessage::user("hello")],
             None,
             None,
@@ -8317,7 +8317,7 @@ mod tests {
         let response = stream_chat_with_transient_retry(
             &backend,
             0,
-            "bedrock::openai.gpt-5.4",
+            "codex::gpt-5.4",
             &[ChatMessage::user("hello")],
             None,
             None,

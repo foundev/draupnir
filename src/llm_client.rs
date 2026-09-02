@@ -582,9 +582,8 @@ pub struct ChatMessage {
     /// message, if the backend returned one. Codex-only: only
     /// `codex_client.rs` reads or writes this field, and it is deliberately
     /// absent from `ChatMessage`'s hand-written `Serialize` impl below, so
-    /// it cannot leak into a Bedrock or OpenAI-compatible/DeepSeek request
-    /// body (see `codex_reasoning_items_are_invisible_to_bedrock_requests`
-    /// in `bedrock_client.rs`).
+    /// it cannot leak into an OpenAI-compatible or DeepSeek request
+    /// body (see the Codex serialization tests).
     ///
     /// Follows the same backend-required-replay pattern as
     /// `reasoning_content` above (kept because DeepSeek requires it back on
@@ -1300,7 +1299,7 @@ impl BearerTokenProvider for StaticBearerToken {
 }
 
 /// DeepSeek's two documented reasoning levels. DeepSeek's `/v1/models` is
-/// id-only (no capability fields), so -- like Bedrock and Ollama -- we
+/// id-only (no capability fields), so -- like Ollama -- we
 /// declare the levels here and let the shared picker/selection code in
 /// `agent.rs` and `session.rs` map any requested effort onto them.
 const DEEPSEEK_REASONING_PRESETS: &[(&str, &str)] = &[
@@ -2008,7 +2007,7 @@ impl OpenAiClient {
             // DeepSeek's `/models` is id-only, so `to_model_metadata` would
             // yield no reasoning info. Declare DeepSeek's levels here (default
             // `high`) so the shared picker/selection code can map requests to
-            // availability, exactly as it does for Bedrock/Ollama.
+            // availability, exactly as it does for Ollama.
             let presets = deepseek_reasoning_presets();
             return Ok(models
                 .data

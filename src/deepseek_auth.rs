@@ -7,9 +7,9 @@
 //! on-disk state is only created by the setup command.
 //!
 //! Storage lives in the consolidated [`crate::secrets`] store
-//! (`<config>/brokk/secrets.json`, 0600, atomic), like OpenRouter and
-//! Bedrock. Unlike those two there is no legacy per-provider file to fall
-//! back to or migrate -- DeepSeek predates no store but the env var.
+//! (`<config>/brokk/secrets.json`, 0600, atomic), like OpenRouter. There is no
+//! legacy per-provider file to fall back to or migrate -- DeepSeek predates no
+//! store but the env var.
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ pub struct DeepSeekAuth {
 
 /// Snapshot of where DeepSeek credentials currently come from. Single
 /// source of truth for the "env owns" contract, mirroring the OpenRouter
-/// and Bedrock `CredentialState` types: whenever `DEEPSEEK_API_KEY` is
+/// and OpenRouter `CredentialState` types: whenever `DEEPSEEK_API_KEY` is
 /// non-empty the environment owns the credential lifecycle and `/setup
 /// deepseek key` explains rather than mutating state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

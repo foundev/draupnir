@@ -58,7 +58,7 @@ impl std::fmt::Display for RetryableLlmError {
 impl std::error::Error for RetryableLlmError {}
 
 /// Substring that identifies a *per-day* provider quota in a rejection body.
-/// Bedrock/mantle quota ids are `<metric>-<window>:<account>:<model>`, so a
+/// Provider quota ids are `<metric>-<window>:<account>:<model>`, so a
 /// daily input-token quota reads `input-tpd:842609633142:openai.gpt-5.6-sol`.
 /// The per-minute sibling is `-tpm:`, which is exactly what the retry tiers
 /// exist for and must keep its retryable classification.
@@ -168,7 +168,7 @@ pub(crate) fn retryable_llm_error_for_body(
 
 /// Classify a failed HTTP exchange, preferring the status code over the
 /// response body. A 5xx or 429 is retryable by definition, whatever prose
-/// the provider puts in the body -- Bedrock, for instance, returns
+/// the provider puts in the body -- a provider, for instance, returns
 /// `{"message":"The system encountered an unexpected error during
 /// processing. Try your request again."}` on a 500, which matches none of
 /// the body markers and would otherwise be treated as terminal. Body
@@ -181,7 +181,7 @@ pub(crate) fn retryable_llm_error_for_body(
 ///
 /// A 5xx gets the same patient tier as a 429. `Fast` spends its four
 /// attempts inside about 1.4 seconds, which is less patience than a routine
-/// provider blip needs: a roughly two-second Bedrock 500 storm killed a
+/// provider blip needs: a roughly two-second 500 storm killed a
 /// supervisor's first turn four minutes into a 90-minute run, and the run
 /// delivered a zero-byte patch. `GatewayTransient`'s ~3.5-minute envelope
 /// is the right patience for unattended long-running work, and it is still
@@ -249,7 +249,7 @@ pub(crate) fn contains_gateway_transient_marker(message: &str) -> bool {
 /// Body markers that mean the same thing a 5xx or a 429 status means, and
 /// so earn the same patient retry tier: every one of them names an overload
 /// or a throttle on the provider's side, never a defect in the request.
-/// "internal server error" covers Bedrock Mantle streams that wrap a 500 in
+/// "internal server error" covers streams that wrap a 500 in
 /// a client-shaped error code (observed 2026-07-31: `response.failed` with
 /// code `invalid_prompt`, message "Internal server error" — the code lies,
 /// the message is the server's own diagnosis).
@@ -580,8 +580,8 @@ mod tests {
     }
 
     #[test]
-    fn bedrock_500_is_retryable_despite_an_unrecognized_body() {
-        // Verbatim body Bedrock returns on a 500. It matches none of the
+    fn server_500_is_retryable_despite_an_unrecognized_body() {
+        // Verbatim body a provider returns on a 500. It matches none of the
         // body markers, so body-only classification called it terminal and
         // a transient blip killed an entire task on the supervisor's first
         // turn.
@@ -591,7 +591,7 @@ mod tests {
             "body markers must not be what makes this retryable"
         );
         let error = retryable_llm_error_for_status_and_body(
-            "Bedrock request failed",
+            "provider request failed",
             reqwest::StatusCode::INTERNAL_SERVER_ERROR,
             body,
         );
@@ -603,8 +603,8 @@ mod tests {
 
     #[test]
     fn invalid_prompt_wrapping_a_server_error_is_retryable() {
-        // Verbatim stream failure observed 2026-07-31: Bedrock Mantle labels
-        // an internal 500 with the client-shaped code `invalid_prompt`. The
+        // A stream failure can label an internal 500 with the client-shaped
+        // code `invalid_prompt`. The
         // message names a server-side failure, so it earns the patient tier;
         // classifying it terminal killed a 95-turn attempt.
         let error = retryable_llm_error_for_responses_failure(
@@ -630,7 +630,7 @@ mod tests {
     }
 
     /// A 5xx must outlast a provider blip that is longer than the fast
-    /// tier's whole 1.4-second budget: the same two-second Bedrock storm
+    /// tier's whole 1.4-second budget: the same two-second provider storm
     /// that used to kill a 90-minute run on its first supervisor turn.
     #[test]
     fn server_errors_get_the_patient_tier_from_status_or_body() {
@@ -684,14 +684,14 @@ mod tests {
         );
     }
 
-    /// Verbatim body the Bedrock mantle endpoint returned on every request
+    /// Verbatim body an endpoint returned on every request
     /// for the rest of the day once the daily input-token quota blew.
     const DAILY_QUOTA_BODY: &str = r#"{"error":{"code":"rate_limit_exceeded","message":"quota input-tpd:842609633142:openai.gpt-5.6-sol (InputTokens) exceeded by 88030.29629390592","param":null,"type":"rate_limit_error"}}"#;
 
     #[test]
     fn daily_quota_429_is_fatal_not_retryable() {
         let error = retryable_llm_error_for_status_and_body(
-            "Bedrock request failed",
+            "provider request failed",
             reqwest::StatusCode::TOO_MANY_REQUESTS,
             DAILY_QUOTA_BODY,
         );
@@ -730,7 +730,7 @@ mod tests {
     fn per_minute_throttle_429_stays_retryable() {
         let body = r#"{"error":{"code":"rate_limit_exceeded","message":"quota input-tpm:842609633142:openai.gpt-5.6-sol (InputTokens) exceeded by 512.5","param":null,"type":"rate_limit_error"}}"#;
         let error = retryable_llm_error_for_status_and_body(
-            "Bedrock request failed",
+            "provider request failed",
             reqwest::StatusCode::TOO_MANY_REQUESTS,
             body,
         );

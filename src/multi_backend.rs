@@ -4,7 +4,7 @@
 //!
 //! Why a separate type? `OpenAiClient` and `CodexClient` already implement
 //! `LlmBackend` for one transport each. Wrapping the configured sources
-//! (Bedrock, Codex, hosted DeepSeek, Kimi, Grok, generic OpenAI profiles,
+//! (Codex, hosted DeepSeek, Kimi, Grok, generic OpenAI profiles,
 //! OpenRouter, Ollama) in a single routing backend lets `agent.rs` stay
 //! oblivious to which model it's talking to -- it just hands the wire id
 //! back to the backend the same way it always has, and the backend strips
@@ -132,21 +132,6 @@ impl MultiBackend {
         }
     }
 
-    /// Install (or replace) the Bedrock backend at runtime. Called from
-    /// `/setup bedrock key <token>` so a session that started without
-    /// Bedrock credentials picks up the new key on the next discovery
-    /// refresh.
-    pub fn install_bedrock(&self, backend: Arc<dyn LlmBackend>) {
-        self.install(ModelSource::BEDROCK, backend);
-    }
-
-    /// Drop the currently-installed Bedrock backend, if any. Called
-    /// from `/setup bedrock disconnect` after the on-disk credentials
-    /// are wiped.
-    pub fn uninstall_bedrock(&self) {
-        self.uninstall(ModelSource::BEDROCK);
-    }
-
     /// Install (or replace) the Codex backend at runtime. Called from
     /// `/setup codex` so the next discovery refresh and any subsequent
     /// `codex::*` route picks it up without a server restart.
@@ -218,7 +203,7 @@ impl MultiBackend {
         self.uninstall(ModelSource::OPENROUTER);
     }
 
-    /// Snapshot the current Bedrock backend, if any. Cloning the inner Arc
+    /// Snapshot the current backend, if any. Cloning the inner Arc
     /// lets callers release the read lock immediately; they can then
     /// `.await` the backend without holding a guard.
     fn snapshot(&self, source: &str) -> Option<Arc<dyn LlmBackend>> {
@@ -352,12 +337,9 @@ impl MultiBackend {
 
     /// Source to use when a chat request arrives with no `<source>::` prefix.
     /// Computed on demand (rather than cached at construction) so a Codex
-    /// login or Bedrock key paste mid-session promotes it to the preferred
-    /// fallback.
+    /// login mid-session promotes it to the preferred fallback.
     ///
-    /// Priority follows registry order. Bedrock wins when configured because
-    /// its model ids are otherwise easy to type
-    /// bare from the environment-driven setup. ds4 sits after Ollama so an
+    /// Priority follows registry order. ds4 sits after Ollama so an
     /// existing Ollama user's bare-id fallback is unchanged, and direct
     /// DeepSeek beats generic OpenAI-compatible profiles and OpenRouter
     /// when both expose the same family.
@@ -545,7 +527,6 @@ mod tests {
     use std::sync::Mutex;
 
     fn test_multi(
-        bedrock: Option<Arc<dyn LlmBackend>>,
         codex: Option<Arc<dyn LlmBackend>>,
         deepseek: Option<Arc<dyn LlmBackend>>,
         openai: Option<Arc<dyn LlmBackend>>,
@@ -553,7 +534,6 @@ mod tests {
         ollama: Option<Arc<dyn LlmBackend>>,
     ) -> MultiBackend {
         MultiBackend::new(vec![
-            BackendRegistration::new(ModelSource::BEDROCK, "Bedrock", bedrock),
             BackendRegistration::new(ModelSource::CODEX, "Codex", codex),
             BackendRegistration::new(ModelSource::OLLAMA, "Local models", ollama),
             BackendRegistration::new(ModelSource::DS4, "ds4", None),
@@ -671,14 +651,7 @@ mod tests {
     async fn stream_chat_routes_by_wire_prefix() {
         let (codex_backend, codex_handles) = recording("codex");
         let (ollama_backend, ollama_handles) = recording("ollama");
-        let multi = test_multi(
-            None,
-            Some(codex_backend),
-            None,
-            None,
-            None,
-            Some(ollama_backend),
-        );
+        let multi = test_multi(Some(codex_backend), None, None, None, Some(ollama_backend));
 
         let _ = multi
             .stream_chat(chat_request("codex::gpt-5-codex", None))
@@ -708,14 +681,7 @@ mod tests {
     async fn bare_id_routes_to_codex_fallback_when_both_configured() {
         let (codex_backend, codex_handles) = recording("codex");
         let (ollama_backend, ollama_handles) = recording("ollama");
-        let multi = test_multi(
-            None,
-            Some(codex_backend),
-            None,
-            None,
-            None,
-            Some(ollama_backend),
-        );
+        let multi = test_multi(Some(codex_backend), None, None, None, Some(ollama_backend));
 
         let _ = multi
             .stream_chat(chat_request("gpt-5-codex", None))
@@ -734,7 +700,7 @@ mod tests {
     #[tokio::test]
     async fn bare_id_routes_to_ollama_when_codex_absent() {
         let (ollama_backend, ollama_handles) = recording("ollama");
-        let multi = test_multi(None, None, None, None, None, Some(ollama_backend));
+        let multi = test_multi(None, None, None, None, Some(ollama_backend));
 
         let _ = multi
             .stream_chat(chat_request("llama3", None))
@@ -754,7 +720,7 @@ mod tests {
     async fn wire_id_for_absent_backend_returns_error() {
         // Only Ollama is configured; a `codex::` wire id must error.
         let (ollama_backend, _ollama_handles) = recording("ollama");
-        let multi = test_multi(None, None, None, None, None, Some(ollama_backend));
+        let multi = test_multi(None, None, None, None, Some(ollama_backend));
 
         let err = multi
             .stream_chat(chat_request("codex::gpt-5", None))
@@ -770,7 +736,7 @@ mod tests {
     /// or start Ollama and re-discover) but no model can be routed.
     #[tokio::test]
     async fn empty_multi_backend_errors_on_chat() {
-        let multi = test_multi(None, None, None, None, None, None);
+        let multi = test_multi(None, None, None, None, None);
         let err = multi
             .stream_chat(chat_request("anything", None))
             .await
@@ -791,7 +757,7 @@ mod tests {
     #[tokio::test]
     async fn codex_installed_after_login_is_routable() {
         // Start with no Codex (mirrors the empty-auth.json startup path).
-        let multi = test_multi(None, None, None, None, None, None);
+        let multi = test_multi(None, None, None, None, None);
 
         // Pre-install: a `codex::*` request must fail loudly.
         let err = multi
@@ -825,7 +791,7 @@ mod tests {
     /// fallback was still `None`.
     #[tokio::test]
     async fn bare_id_falls_back_to_codex_after_install() {
-        let multi = test_multi(None, None, None, None, None, None);
+        let multi = test_multi(None, None, None, None, None);
 
         let (codex_backend, codex_handles) = recording("codex");
         multi.install_codex(codex_backend);
@@ -847,7 +813,7 @@ mod tests {
     /// model picker would never show Codex models.
     #[tokio::test]
     async fn list_models_reflects_installed_codex() {
-        let multi = test_multi(None, None, None, None, None, None);
+        let multi = test_multi(None, None, None, None, None);
         let (codex_backend, _codex_handles) = recording("codex");
         multi.install_codex(codex_backend);
 
@@ -868,7 +834,7 @@ mod tests {
     /// exist on disk.
     #[tokio::test]
     async fn codex_uninstall_unroutes_codex_requests() {
-        let multi = test_multi(None, None, None, None, None, None);
+        let multi = test_multi(None, None, None, None, None);
         let (codex_backend, _codex_handles) = recording("codex");
         multi.install_codex(codex_backend);
 
@@ -891,83 +857,6 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn bedrock_installed_after_setup_is_routable() {
-        let multi = test_multi(None, None, None, None, None, None);
-
-        let err = multi
-            .stream_chat(chat_request(
-                "bedrock::us.anthropic.claude-sonnet-4-6",
-                None,
-            ))
-            .await
-            .expect_err("bedrock route must fail before install");
-        assert!(format!("{err:#}").contains("bedrock"));
-
-        let (bedrock_backend, bedrock_handles) = recording("bedrock");
-        multi.install_bedrock(bedrock_backend);
-
-        let _ = multi
-            .stream_chat(chat_request(
-                "bedrock::us.anthropic.claude-sonnet-4-6",
-                None,
-            ))
-            .await
-            .expect("bedrock route must succeed after install");
-        assert_eq!(
-            bedrock_handles.last_model.lock().unwrap().as_deref(),
-            Some("us.anthropic.claude-sonnet-4-6")
-        );
-    }
-
-    #[tokio::test]
-    async fn bare_id_falls_back_to_bedrock_after_install() {
-        let (codex_backend, codex_handles) = recording("codex");
-        let multi = test_multi(None, Some(codex_backend), None, None, None, None);
-
-        let (bedrock_backend, bedrock_handles) = recording("bedrock");
-        multi.install_bedrock(bedrock_backend);
-
-        let _ = multi
-            .stream_chat(chat_request("us.anthropic.claude-sonnet-4-6", None))
-            .await
-            .expect("bare id must route to newly-installed bedrock");
-        assert_eq!(
-            bedrock_handles.last_model.lock().unwrap().as_deref(),
-            Some("us.anthropic.claude-sonnet-4-6")
-        );
-        assert!(codex_handles.last_model.lock().unwrap().is_none());
-    }
-
-    #[tokio::test]
-    async fn bedrock_uninstall_unroutes_bedrock_requests() {
-        let multi = test_multi(None, None, None, None, None, None);
-        let (bedrock_backend, _bedrock_handles) = recording("bedrock");
-        multi.install_bedrock(bedrock_backend);
-
-        let _ = multi
-            .stream_chat(chat_request(
-                "bedrock::us.anthropic.claude-sonnet-4-6",
-                None,
-            ))
-            .await
-            .expect("bedrock route must succeed while installed");
-
-        multi.uninstall_bedrock();
-
-        let err = multi
-            .stream_chat(chat_request(
-                "bedrock::us.anthropic.claude-sonnet-4-6",
-                None,
-            ))
-            .await
-            .expect_err("bedrock route must fail after uninstall");
-        assert!(
-            format!("{err:#}").contains("bedrock"),
-            "error must mention bedrock backend"
-        );
-    }
-
     /// Wire ids tagged `openrouter::` route to the OpenRouter backend
     /// with the bare id (slash-separated `vendor/model`), and do NOT
     /// leak to Codex or Ollama when those are also configured.
@@ -977,7 +866,6 @@ mod tests {
         let (openrouter_backend, openrouter_handles) = recording("openrouter");
         let (ollama_backend, ollama_handles) = recording("ollama");
         let multi = test_multi(
-            None,
             Some(codex_backend),
             None,
             None,
@@ -1008,7 +896,6 @@ mod tests {
         let (deepseek_backend, deepseek_handles) = recording("deepseek");
         let (openrouter_backend, openrouter_handles) = recording("openrouter");
         let multi = test_multi(
-            None,
             Some(codex_backend),
             Some(deepseek_backend),
             None,
@@ -1069,7 +956,7 @@ mod tests {
     #[tokio::test]
     async fn bare_id_routes_to_deepseek_when_only_deepseek_configured() {
         let (deepseek_backend, deepseek_handles) = recording("deepseek");
-        let multi = test_multi(None, None, Some(deepseek_backend), None, None, None);
+        let multi = test_multi(None, Some(deepseek_backend), None, None, None);
 
         let _ = multi
             .stream_chat(chat_request("deepseek-v4-flash", None))
@@ -1084,7 +971,7 @@ mod tests {
     #[tokio::test]
     async fn openai_wire_id_routes_to_profile_and_strips_profile_prefix() {
         let (openai_backend, openai_handles) = recording("openai");
-        let multi = test_multi(None, None, None, Some(openai_backend), None, None);
+        let multi = test_multi(None, None, Some(openai_backend), None, None);
 
         let _ = multi
             .stream_chat(chat_request("openai::deca/deca-model", None))
@@ -1101,7 +988,6 @@ mod tests {
         let (openai_backend, openai_handles) = recording("openai");
         let (openrouter_backend, openrouter_handles) = recording("openrouter");
         let multi = test_multi(
-            None,
             None,
             None,
             Some(openai_backend),
@@ -1132,7 +1018,7 @@ mod tests {
                 }],
             })
             .expect("non-empty openai config builds a backend");
-        let multi = test_multi(None, None, None, Some(openai_backend), None, None);
+        let multi = test_multi(None, None, Some(openai_backend), None, None);
 
         let info = multi.resolve_model_info("openai::deca/deca-model");
 
@@ -1147,7 +1033,7 @@ mod tests {
     #[tokio::test]
     async fn bare_id_routes_to_openrouter_when_only_openrouter_configured() {
         let (openrouter_backend, openrouter_handles) = recording("openrouter");
-        let multi = test_multi(None, None, None, None, Some(openrouter_backend), None);
+        let multi = test_multi(None, None, None, Some(openrouter_backend), None);
 
         let _ = multi
             .stream_chat(chat_request("anthropic/claude-3.5-sonnet", None))
@@ -1162,7 +1048,7 @@ mod tests {
     #[test]
     fn resolve_model_info_reports_wire_provider_and_bare_model() {
         let (openrouter_backend, _openrouter_handles) = recording("openrouter");
-        let multi = test_multi(None, None, None, None, Some(openrouter_backend), None);
+        let multi = test_multi(None, None, None, Some(openrouter_backend), None);
 
         let info = multi.resolve_model_info("openrouter::google/gemini-3.1-pro-preview");
 
@@ -1177,7 +1063,7 @@ mod tests {
     #[test]
     fn resolve_model_info_reports_bare_model_fallback_provider() {
         let (openrouter_backend, _openrouter_handles) = recording("openrouter");
-        let multi = test_multi(None, None, None, None, Some(openrouter_backend), None);
+        let multi = test_multi(None, None, None, Some(openrouter_backend), None);
 
         let info = multi.resolve_model_info("gemini-3.1-pro-preview");
 
@@ -1196,7 +1082,6 @@ mod tests {
         let (openrouter_backend, openrouter_handles) = recording("openrouter");
         let (ollama_backend, ollama_handles) = recording("ollama");
         let multi = test_multi(
-            None,
             None,
             None,
             None,
@@ -1225,7 +1110,7 @@ mod tests {
     #[tokio::test]
     async fn openrouter_wire_id_for_absent_backend_returns_error() {
         let (codex_backend, _codex_handles) = recording("codex");
-        let multi = test_multi(None, Some(codex_backend), None, None, None, None);
+        let multi = test_multi(Some(codex_backend), None, None, None, None);
 
         let err = multi
             .stream_chat(chat_request(
@@ -1249,7 +1134,7 @@ mod tests {
     #[tokio::test]
     async fn stream_chat_forwards_reasoning_effort() {
         let (codex_backend, codex_handles) = recording("codex");
-        let multi = test_multi(None, Some(codex_backend), None, None, None, None);
+        let multi = test_multi(Some(codex_backend), None, None, None, None);
 
         let _ = multi
             .stream_chat(chat_request("codex::gpt-5.2", Some("xhigh")))
@@ -1269,7 +1154,7 @@ mod tests {
     #[tokio::test]
     async fn stream_chat_forwards_service_tier() {
         let (codex_backend, codex_handles) = recording("codex");
-        let multi = test_multi(None, Some(codex_backend), None, None, None, None);
+        let multi = test_multi(Some(codex_backend), None, None, None, None);
 
         let _ = multi
             .stream_chat(chat_request_with_service_tier(
@@ -1290,14 +1175,7 @@ mod tests {
     async fn list_models_times_out_stuck_provider_and_keeps_healthy_ones() {
         let hanging: Arc<dyn LlmBackend> = Arc::new(HangingBackend);
         let (openrouter_backend, _openrouter_handles) = recording("openrouter");
-        let multi = test_multi(
-            None,
-            Some(hanging),
-            None,
-            None,
-            Some(openrouter_backend),
-            None,
-        );
+        let multi = test_multi(Some(hanging), None, None, Some(openrouter_backend), None);
 
         let models = multi.list_models().await.expect("discovery must succeed");
         assert!(
@@ -1309,7 +1187,7 @@ mod tests {
     #[test]
     fn explicit_utility_route_requires_qualified_available_provider() {
         let (deepseek_backend, _) = recording("deepseek");
-        let multi = test_multi(None, None, Some(deepseek_backend), None, None, None);
+        let multi = test_multi(None, Some(deepseek_backend), None, None, None);
 
         multi
             .validate_explicit_model_route("deepseek::deepseek-v4-flash")
@@ -1323,7 +1201,7 @@ mod tests {
         );
         assert!(
             multi
-                .validate_explicit_model_route("bedrock::openai.gpt-5.6-luna")
+                .validate_explicit_model_route("missing::model")
                 .unwrap_err()
                 .to_string()
                 .contains("not configured")

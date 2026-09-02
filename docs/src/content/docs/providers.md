@@ -70,20 +70,6 @@ Set `OPENROUTER_API_KEY` before starting Draupnir or use:
 /setup openrouter disconnect
 ```
 
-## AWS Bedrock
-
-Bedrock uses `AWS_BEARER_TOKEN_BEDROCK` or credentials saved through `/setup bedrock`; a legacy `~/.secrets/bedrock_api_key` fallback remains recognized. Configure and inspect it with:
-
-```text
-/setup bedrock
-/setup bedrock region <region>
-/setup bedrock model <model-id>
-/setup bedrock catalog
-/setup bedrock status
-```
-
-Draupnir discovers inference profiles for the active region and normalizes base models to required profiles when possible. Native Anthropic-style models and Bedrock's OpenAI-compatible Responses endpoint have provider-specific routing and reasoning controls.
-
 ## Generic OpenAI-Compatible Profiles
 
 Draupnir reads `providers.json` once at startup from the Brokk config directory (`$BROKK_CONFIG_HOME`, or the OS config directory plus `brokk`):
@@ -108,6 +94,6 @@ These profiles use baseline Chat Completions with streaming, tools, usage, and s
 
 ## Credentials and Setup Forms
 
-Clients that advertise ACP elicitation forms receive out-of-transcript credential fields for OpenRouter, Bedrock, and DeepSeek. In a text-only client, commands such as `/setup openrouter key <key>` remain available but the pasted secret becomes part of the session transcript. Prefer environment variables or elicitation forms for sensitive credentials.
+Clients that advertise ACP elicitation forms receive out-of-transcript credential fields for OpenRouter and DeepSeek. In a text-only client, commands such as `/setup openrouter key <key>` remain available but the pasted secret becomes part of the session transcript. Prefer environment variables or elicitation forms for sensitive credentials.
 
-Provider priority for automatic selection is Bedrock, Codex, local models (Ollama then ds4), DeepSeek, Kimi, Grok, generic OpenAI-compatible profiles, then OpenRouter. Override it for the current session with `/setup model <wire-id>`.
+Provider priority for automatic selection is Codex, local models (Ollama then ds4), DeepSeek, Kimi, Grok, generic OpenAI-compatible profiles, then OpenRouter. Override it for the current session with `/setup model <wire-id>`.

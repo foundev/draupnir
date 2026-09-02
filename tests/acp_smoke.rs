@@ -3017,7 +3017,6 @@ fn spawn_draupnir_inner(
         .env("DRAUPNIR_TEST_DISABLE_TURN_RECAP", "1")
         .env_remove("OPENAI_API_KEY")
         .env_remove("OPENROUTER_API_KEY")
-        .env_remove("BEDROCK_API_KEY")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

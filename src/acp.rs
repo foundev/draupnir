@@ -114,9 +114,9 @@ use crate::terminal_notifications::{
     TerminalNotificationEvent, emit as emit_terminal_notification,
 };
 use crate::usage_report::{
-    attach_bedrock_credits_meta, attach_deepseek_balance_meta, attach_openrouter_balance_meta,
-    fetch_codex_credits_for_usage, fetch_openrouter_credits_for_usage, insert_turn_failure_meta,
-    render_usage_report, usage_by_model_meta,
+    attach_deepseek_balance_meta, attach_openrouter_balance_meta, fetch_codex_credits_for_usage,
+    fetch_openrouter_credits_for_usage, insert_turn_failure_meta, render_usage_report,
+    usage_by_model_meta,
 };
 
 /// Stable ids for ACP `SessionConfigOption` selectors. These are live
@@ -1298,7 +1298,6 @@ async fn send_session_usage_update_with_breakdown(
     if let Some(failure) = turn_failure {
         insert_turn_failure_meta(&mut meta, failure);
     }
-    attach_bedrock_credits_meta(&mut meta, &snap.model, crate::bedrock_credits::status);
     attach_openrouter_balance_meta(&mut meta, &snap.model, crate::openrouter_credits::status);
     attach_deepseek_balance_meta(&mut meta, &snap.model, crate::deepseek_balance::status);
     if !meta.is_empty() {
@@ -1504,7 +1503,6 @@ const MODEL_REFRESH_LOCK_WAIT: Duration = Duration::from_secs(2);
 
 fn preferred_model(catalog: &[ModelMetadata]) -> Option<String> {
     [
-        ModelSource::BEDROCK,
         ModelSource::CODEX,
         ModelSource::OLLAMA,
         ModelSource::DS4,
@@ -1546,14 +1544,12 @@ fn render_setup_home_from_snapshot(snap: &SessionSnapshot, catalog: &[ModelMetad
 }
 
 fn render_setup_home_for_model(model: &str, catalog: &[ModelMetadata]) -> String {
-    let bedrock_count = source_count(catalog, ModelSource::BEDROCK);
     let codex_count = source_count(catalog, ModelSource::CODEX);
     let local_count =
         source_count(catalog, ModelSource::OLLAMA) + source_count(catalog, ModelSource::DS4);
     let deepseek_count = source_count(catalog, ModelSource::DEEPSEEK);
     let grok_count = source_count(catalog, ModelSource::GROK);
     let openrouter_count = source_count(catalog, ModelSource::OPENROUTER);
-    let bedrock_state = crate::bedrock_auth::CredentialState::snapshot();
     let openrouter_state = crate::openrouter_auth::CredentialState::snapshot();
     let deepseek_state = crate::deepseek_auth::CredentialState::snapshot();
     let codex_connected = crate::codex_auth::read_auth_dot_json()
@@ -1583,20 +1579,12 @@ fn render_setup_home_for_model(model: &str, catalog: &[ModelMetadata]) -> String
          {ready}\n\n\
          Pick one:\n{choices}\n\n\
          Provider status (global):\n\
-         - Bedrock: {bedrock_status}\n\
          - Codex: {codex_status}\n\
          - Local models (Ollama / ds4): {local_status}\n\
          - DeepSeek: {deepseek_status}\n\
          - Grok: {grok_status}\n\
          - OpenRouter: {openrouter_status}\n\n\
          You can run `/setup` anytime.",
-        bedrock_status = if bedrock_count > 0 {
-            "ready".to_string()
-        } else if bedrock_state.active_source() == "none" {
-            "not connected".to_string()
-        } else {
-            "connected, no models found yet".to_string()
-        },
         codex_status = if codex_count > 0 {
             "ready".to_string()
         } else if codex_connected {
@@ -6827,14 +6815,10 @@ enum SetupElicitTarget {
     Home,
     /// `/setup sandbox` with no explicit value -> single-select form menu.
     Sandbox,
-    /// `/setup bedrock catalog` -> single-select catalog-source menu.
-    BedrockCatalog,
     /// `/setup codex` (or `/setup codex login`) -> form-mode auth-method menu.
     CodexLogin,
     /// `/setup openrouter` with no explicit value -> form-mode key entry.
     OpenRouterLogin,
-    /// `/setup bedrock` with no explicit value -> form-mode token entry.
-    BedrockLogin,
     /// `/setup deepseek` with no explicit value -> form-mode key entry.
     DeepSeekLogin,
 }
@@ -6846,7 +6830,7 @@ impl SetupElicitTarget {
             // The home menu is a form-mode (single-select) elicitation.
             Self::Home => caps.form,
             // Sandbox is a form-mode (menu) elicitation.
-            Self::Sandbox | Self::BedrockCatalog => caps.form,
+            Self::Sandbox => caps.form,
             // Good clients get a form menu to choose browser vs device auth,
             // then a URL prompt for the selected auth URL.
             Self::CodexLogin => caps.form && caps.url,
@@ -6854,7 +6838,7 @@ impl SetupElicitTarget {
             Self::OpenRouterLogin => caps.form,
             // Hosted-provider secrets use form fields so they never enter the
             // prompt transcript.
-            Self::BedrockLogin | Self::DeepSeekLogin => caps.form,
+            Self::DeepSeekLogin => caps.form,
         }
     }
 }
@@ -6877,16 +6861,12 @@ fn setup_elicitation_target(prompt_text: &str) -> Option<SetupElicitTarget> {
         // Bare `/setup` (no sub-command) -> the single interactive entry point.
         "" => Some(SetupElicitTarget::Home),
         "sandbox" if rest.is_empty() => Some(SetupElicitTarget::Sandbox),
-        "bedrock" if rest.eq_ignore_ascii_case("catalog") => {
-            Some(SetupElicitTarget::BedrockCatalog)
-        }
         // Bare `/setup codex` / `/setup codex login` open a method menu;
         // explicit methods and status/disconnect keep the text flow.
         "codex" if rest.is_empty() || rest == "login" => Some(SetupElicitTarget::CodexLogin),
         // Bare `/setup openrouter` collects the API key via a form field;
         // `key <k>` / `status` / `disconnect` keep the text flow.
         "openrouter" if rest.is_empty() => Some(SetupElicitTarget::OpenRouterLogin),
-        "bedrock" if rest.is_empty() => Some(SetupElicitTarget::BedrockLogin),
         "deepseek" if rest.is_empty() => Some(SetupElicitTarget::DeepSeekLogin),
         _ => None,
     }
@@ -6912,17 +6892,6 @@ async fn run_setup_elicitation(
         SetupElicitTarget::Sandbox => {
             run_setup_sandbox_elicitation(spawned_cx, sessions, session_id, cancel).await;
         }
-        SetupElicitTarget::BedrockCatalog => {
-            run_setup_bedrock_catalog_elicitation(
-                spawned_cx,
-                sessions,
-                session_id,
-                llm,
-                refresh_lock,
-                cancel,
-            )
-            .await;
-        }
         SetupElicitTarget::CodexLogin => {
             run_setup_codex_login_elicitation(
                 spawned_cx,
@@ -6936,17 +6905,6 @@ async fn run_setup_elicitation(
         }
         SetupElicitTarget::OpenRouterLogin => {
             run_setup_openrouter_login_elicitation(
-                spawned_cx,
-                sessions,
-                session_id,
-                llm,
-                refresh_lock,
-                cancel,
-            )
-            .await;
-        }
-        SetupElicitTarget::BedrockLogin => {
-            run_setup_bedrock_login_elicitation(
                 spawned_cx,
                 sessions,
                 session_id,
@@ -7303,47 +7261,6 @@ async fn request_setup_secret(
     }
 }
 
-async fn run_setup_bedrock_login_elicitation(
-    spawned_cx: &crate::tool_loop::SpawnedCx<'_>,
-    sessions: &SessionStore,
-    session_id: &str,
-    llm: &Arc<MultiBackend>,
-    refresh_lock: &Arc<tokio::sync::Mutex<()>>,
-    cancel: &tokio_util::sync::CancellationToken,
-) {
-    let cx = spawned_cx.cx();
-    if crate::bedrock_auth::CredentialState::snapshot().env_owns() {
-        send_message(cx, session_id, &render_bedrock_setup_help());
-        return;
-    }
-    let request = build_provider_secret_elicitation_request(
-        session_id,
-        "AWS Bedrock",
-        "Bearer token",
-        "Paste your AWS Bedrock bearer token. It will be stored in Draupnir's protected secrets file.",
-    );
-    let message = match request_setup_secret(cx, cancel, request).await {
-        Ok(Some(key)) => {
-            handle_setup_bedrock(
-                cx,
-                sessions,
-                session_id,
-                llm,
-                refresh_lock,
-                &format!("key {key}"),
-            )
-            .await
-        }
-        Ok(None) => "Bedrock setup cancelled; credentials are unchanged.".to_string(),
-        Err(e) => {
-            tracing::warn!("/setup bedrock elicitation failed: {e}");
-            "Setup could not show the Bedrock credential prompt; credentials are unchanged."
-                .to_string()
-        }
-    };
-    send_message(cx, session_id, &message);
-}
-
 async fn run_setup_deepseek_login_elicitation(
     spawned_cx: &crate::tool_loop::SpawnedCx<'_>,
     sessions: &SessionStore,
@@ -7495,86 +7412,6 @@ async fn apply_sandbox_elicitation_outcome(
     }
 }
 
-async fn run_setup_bedrock_catalog_elicitation(
-    spawned_cx: &crate::tool_loop::SpawnedCx<'_>,
-    sessions: &SessionStore,
-    session_id: &str,
-    llm: &Arc<MultiBackend>,
-    refresh_lock: &Arc<tokio::sync::Mutex<()>>,
-    cancel: &tokio_util::sync::CancellationToken,
-) {
-    let cx = spawned_cx.cx();
-    let request =
-        build_bedrock_catalog_elicitation_request(session_id, sessions.bedrock_catalog_mode());
-    let response = tokio::select! {
-        biased;
-        _ = cancel.cancelled() => return,
-        response = cx.send_request(request).block_task() => response,
-    };
-    let message = match response {
-        Ok(resp) => match resp.action {
-            ElicitationAction::Accept(accept) => {
-                let choice = accept
-                    .content
-                    .as_ref()
-                    .and_then(|content| content.get("catalog"))
-                    .and_then(|value| match value {
-                        ElicitationContentValue::String(value) => Some(value.as_str()),
-                        _ => None,
-                    });
-                match choice {
-                    Some(choice) => {
-                        handle_setup_bedrock(
-                            cx,
-                            sessions,
-                            session_id,
-                            llm,
-                            refresh_lock,
-                            &format!("catalog {choice}"),
-                        )
-                        .await
-                    }
-                    None => {
-                        "No Bedrock catalog mode selected; configuration is unchanged.".to_string()
-                    }
-                }
-            }
-            ElicitationAction::Decline | ElicitationAction::Cancel => {
-                "Bedrock catalog setup cancelled; configuration is unchanged.".to_string()
-            }
-            _ => "Bedrock catalog setup did not complete; configuration is unchanged.".to_string(),
-        },
-        Err(err) => {
-            tracing::warn!("/setup bedrock catalog elicitation failed: {err}");
-            "Setup could not show the Bedrock catalog menu; configuration is unchanged.".to_string()
-        }
-    };
-    send_message(cx, session_id, &message);
-}
-
-fn build_bedrock_catalog_elicitation_request(
-    session_id: &str,
-    current: crate::setup_state::BedrockCatalogMode,
-) -> CreateElicitationRequest {
-    let current = current.as_str();
-    let field = StringPropertySchema::new()
-        .title("Bedrock model catalog")
-        .description("Choose which Bedrock model discovery APIs are used and which source wins duplicate model ids.")
-        .one_of(vec![
-            EnumOption::new("mantle-only", "Mantle only"),
-            EnumOption::new("native-only", "Native Bedrock only"),
-            EnumOption::new("mantle-preferred", "Merge; prefer Mantle on conflicts"),
-            EnumOption::new("native-preferred", "Merge; prefer native Bedrock on conflicts"),
-        ])
-        .default_value(current);
-    let schema = ElicitationSchema::new()
-        .title("Bedrock model catalog")
-        .property("catalog", field, true);
-    let mode =
-        ElicitationFormMode::new(ElicitationSessionScope::new(session_id.to_string()), schema);
-    CreateElicitationRequest::new(mode, "Choose how Bedrock models are discovered")
-}
-
 /// A choice from the `/setup` home, mapped to the sub-flow it dispatches into.
 /// This registry is the source for both the interactive menu and Markdown
 /// fallback, including their scope labels.
@@ -7584,10 +7421,6 @@ enum SetupHomeRoute {
     Choose,
     /// Interactive Codex / ChatGPT sign-in (`/setup codex`).
     Codex,
-    /// AWS Bedrock credential setup (`/setup bedrock`).
-    Bedrock,
-    /// Bedrock model catalog source (`/setup bedrock catalog`).
-    BedrockCatalog,
     /// Local Ollama models (`/setup local`).
     Local,
     /// Hosted DeepSeek key entry (`/setup deepseek`).
@@ -7610,8 +7443,6 @@ impl SetupHomeRoute {
         match self {
             Self::Choose => "choose",
             Self::Codex => "codex",
-            Self::Bedrock => "bedrock",
-            Self::BedrockCatalog => "bedrock-catalog",
             Self::Local => "local",
             Self::DeepSeek => "deepseek",
             Self::Grok => "grok",
@@ -7634,8 +7465,6 @@ impl SetupHomeRoute {
         match self {
             Self::Choose => "Choose a model for me",
             Self::Codex => "Sign in to Codex / ChatGPT",
-            Self::Bedrock => "Connect AWS Bedrock",
-            Self::BedrockCatalog => "Configure Bedrock model catalog",
             Self::Local => "Use local models (Ollama / ds4)",
             Self::DeepSeek => "Use hosted DeepSeek",
             Self::Grok => "Use Grok Build OAuth",
@@ -7648,14 +7477,11 @@ impl SetupHomeRoute {
 
     fn scope(self) -> &'static str {
         match self {
-            Self::Codex
-            | Self::Bedrock
-            | Self::Local
-            | Self::DeepSeek
-            | Self::Grok
-            | Self::OpenRouter => "global provider",
+            Self::Codex | Self::Local | Self::DeepSeek | Self::Grok | Self::OpenRouter => {
+                "global provider"
+            }
             Self::Choose => "current session",
-            Self::Lsp | Self::Recap | Self::BedrockCatalog => "install default",
+            Self::Lsp | Self::Recap => "install default",
             Self::Advanced => "all scopes",
         }
     }
@@ -7664,8 +7490,6 @@ impl SetupHomeRoute {
         match self {
             Self::Choose => "/setup choose",
             Self::Codex => "/setup codex",
-            Self::Bedrock => "/setup bedrock",
-            Self::BedrockCatalog => "/setup bedrock catalog",
             Self::Local => "/setup local",
             Self::DeepSeek => "/setup deepseek",
             Self::Grok => "/setup grok",
@@ -7691,12 +7515,10 @@ impl SetupHomeRoute {
 
     /// The menu in display order. `choose` leads because it is the fastest path
     /// to a working model.
-    fn menu() -> [Self; 11] {
+    fn menu() -> [Self; 9] {
         [
             Self::Choose,
             Self::Codex,
-            Self::Bedrock,
-            Self::BedrockCatalog,
             Self::Local,
             Self::DeepSeek,
             Self::Grok,
@@ -7832,28 +7654,6 @@ async fn run_setup_home_elicitation(
             )
             .await;
         }
-        Some(SetupHomeRoute::Bedrock) => {
-            run_setup_bedrock_login_elicitation(
-                spawned_cx,
-                sessions,
-                session_id,
-                llm,
-                refresh_lock,
-                cancel,
-            )
-            .await;
-        }
-        Some(SetupHomeRoute::BedrockCatalog) => {
-            run_setup_bedrock_catalog_elicitation(
-                spawned_cx,
-                sessions,
-                session_id,
-                llm,
-                refresh_lock,
-                cancel,
-            )
-            .await;
-        }
         Some(SetupHomeRoute::DeepSeek) => {
             run_setup_deepseek_login_elicitation(
                 spawned_cx,
@@ -7935,17 +7735,6 @@ async fn handle_setup(ctx: &SetupContext<'_>, prompt_text: &str, session_id: &st
         }
         "local" | "ollama" => {
             handle_setup_local(
-                ctx.cx,
-                ctx.sessions,
-                session_id,
-                ctx.llm,
-                ctx.refresh_lock,
-                rest,
-            )
-            .await
-        }
-        "bedrock" => {
-            handle_setup_bedrock(
                 ctx.cx,
                 ctx.sessions,
                 session_id,
@@ -8358,353 +8147,11 @@ fn refresh_catalog_after(
     );
 }
 
-async fn handle_setup_bedrock(
-    cx: &ConnectionTo<Client>,
-    sessions: &SessionStore,
-    session_id: &str,
-    llm: &Arc<MultiBackend>,
-    refresh_lock: &Arc<tokio::sync::Mutex<()>>,
-    rest: &str,
-) -> String {
-    use crate::bedrock_client::BEDROCK_DEFAULT_MODEL;
-
-    if rest.is_empty() {
-        return render_bedrock_setup_help();
-    }
-    let lower = rest.to_ascii_lowercase();
-    if matches!(lower.as_str(), "refresh" | "try-again") {
-        return handle_provider_setup_refresh(
-            cx,
-            sessions,
-            session_id,
-            llm,
-            refresh_lock,
-            ModelSource::BEDROCK,
-            "Bedrock",
-            render_bedrock_setup_help,
-        )
-        .await;
-    }
-
-    if let Some(key) = rest.strip_prefix("key ") {
-        let state = crate::bedrock_auth::CredentialState::snapshot();
-        if state.env_owns() {
-            return format!(
-                "Bedrock credentials are managed by the {} environment variable. \
-                 Unset it and restart before using `/setup bedrock key`.",
-                crate::bedrock_client::BEDROCK_API_KEY_ENV
-            );
-        }
-        let key = key.trim();
-        if key.is_empty() {
-            return "Provide a bearer token: `/setup bedrock key <token>`.".to_string();
-        }
-
-        let existing = crate::bedrock_auth::read().unwrap_or(None);
-        let region = existing
-            .as_ref()
-            .and_then(|a| a.region.clone())
-            .unwrap_or_else(crate::bedrock_auth::region_from_any_source);
-        let default_model = existing
-            .as_ref()
-            .and_then(|a| a.default_model.clone())
-            .unwrap_or_else(crate::bedrock_auth::model_from_any_source);
-        let auth = crate::bedrock_auth::BedrockAuth {
-            bearer_token: key.to_string(),
-            region: Some(region.clone()),
-            default_model: Some(default_model.clone()),
-        };
-        match crate::bedrock_auth::write(&auth) {
-            Ok(()) => {
-                let backend: Arc<dyn crate::llm_client::LlmBackend> =
-                    Arc::new(crate::bedrock_client::BedrockClient::new(
-                        key.to_string(),
-                        region.clone(),
-                        default_model.clone(),
-                    ));
-                llm.install_bedrock(backend);
-                refresh_catalog_after(
-                    cx,
-                    session_id,
-                    sessions,
-                    llm,
-                    refresh_lock,
-                    "Refreshing model catalog after Bedrock setup...",
-                );
-                format!(
-                    "Bedrock credentials saved.\n\
-                     Token: saved (length {})\n\
-                     Region: {region}\n\
-                     Model: {default_model}\n\n\
-                     Run `/setup choose` or `/setup model` to pick a Bedrock model.\n\n\
-                     Tip: change region with `/setup bedrock region <region>`\n\
-                     Tip: change model with `/setup bedrock model <model_id>`",
-                    key.len()
-                )
-            }
-            Err(e) => format!("Failed to save Bedrock credentials: {e:#}"),
-        }
-    } else if let Some(region) = rest.strip_prefix("region ") {
-        let region = region.trim();
-        if region.is_empty() {
-            return "Provide a region: `/setup bedrock region <region>` (e.g. us-east-1)."
-                .to_string();
-        }
-        let mut auth = match crate::bedrock_auth::read() {
-            Ok(Some(a)) => a,
-            _ => {
-                return "No Bedrock credentials saved yet. Run `/setup bedrock key <token>` first."
-                    .to_string();
-            }
-        };
-        auth.region = Some(region.to_string());
-        match crate::bedrock_auth::write(&auth) {
-            Ok(()) => {
-                let backend: Arc<dyn crate::llm_client::LlmBackend> =
-                    Arc::new(crate::bedrock_client::BedrockClient::new(
-                        auth.bearer_token.clone(),
-                        region.to_string(),
-                        auth.default_model
-                            .clone()
-                            .unwrap_or_else(|| BEDROCK_DEFAULT_MODEL.to_string()),
-                    ));
-                llm.install_bedrock(backend);
-                refresh_catalog_after(
-                    cx,
-                    session_id,
-                    sessions,
-                    llm,
-                    refresh_lock,
-                    "Refreshing model catalog after Bedrock region change...",
-                );
-                format!("Bedrock region set to {region}.")
-            }
-            Err(e) => format!("Failed to save Bedrock region: {e:#}"),
-        }
-    } else if let Some(mode) = rest.strip_prefix("catalog ") {
-        use std::str::FromStr;
-
-        let mode = mode.trim().to_ascii_lowercase();
-        let Ok(mode) = crate::setup_state::BedrockCatalogMode::from_str(&mode) else {
-            return "Unknown Bedrock catalog mode. Try `mantle-only`, `native-only`, `mantle-preferred`, or `native-preferred`.".to_string();
-        };
-        let _guard = refresh_lock.lock().await;
-        match sessions.remember_bedrock_catalog_mode(mode) {
-            Ok(()) => match crate::bedrock_client::backend_config() {
-                Ok(Some((token, region, model))) => {
-                    llm.install_bedrock(Arc::new(
-                        crate::bedrock_client::BedrockClient::new_with_catalog_mode(
-                            token, region, model, mode,
-                        ),
-                    ));
-                    match refresh_model_catalog_after_lock(
-                        Some(cx),
-                        Some(session_id),
-                        llm,
-                        sessions,
-                    )
-                    .await
-                    {
-                        Ok(_) => format!("Bedrock catalog mode set to `{}`.", mode.as_str()),
-                        Err(err) => format!(
-                            "Bedrock catalog mode set to `{}`, but model refresh failed: {err:#}",
-                            mode.as_str()
-                        ),
-                    }
-                }
-                Ok(None) => {
-                    llm.uninstall_bedrock();
-                    match refresh_model_catalog_after_lock(
-                        Some(cx),
-                        Some(session_id),
-                        llm,
-                        sessions,
-                    )
-                    .await
-                    {
-                        Ok(_) => format!(
-                            "Bedrock catalog mode set to `{}`. No Bedrock credentials are currently configured.",
-                            mode.as_str()
-                        ),
-                        Err(err) => format!(
-                            "Bedrock catalog mode set to `{}`, but model refresh failed: {err:#}",
-                            mode.as_str()
-                        ),
-                    }
-                }
-                Err(err) => format!(
-                    "Bedrock catalog mode set to `{}`, but the Bedrock backend could not be reloaded: {err:#}",
-                    mode.as_str()
-                ),
-            },
-            Err(err) => format!("Failed to save Bedrock catalog mode: {err:#}"),
-        }
-    } else if let Some(model) = rest.strip_prefix("model ") {
-        let model = model.trim();
-        if model.is_empty() {
-            return "Provide a model id: `/setup bedrock model <model_id>` (e.g. us.anthropic.claude-sonnet-4-6).".to_string();
-        }
-        let mut auth = match crate::bedrock_auth::read() {
-            Ok(Some(a)) => a,
-            _ => {
-                return "No Bedrock credentials saved yet. Run `/setup bedrock key <token>` first."
-                    .to_string();
-            }
-        };
-        auth.default_model = Some(model.to_string());
-        match crate::bedrock_auth::write(&auth) {
-            Ok(()) => {
-                let backend: Arc<dyn crate::llm_client::LlmBackend> =
-                    Arc::new(crate::bedrock_client::BedrockClient::new(
-                        auth.bearer_token.clone(),
-                        auth.region
-                            .clone()
-                            .unwrap_or_else(crate::bedrock_auth::region_from_any_source),
-                        model.to_string(),
-                    ));
-                llm.install_bedrock(backend);
-                refresh_catalog_after(
-                    cx,
-                    session_id,
-                    sessions,
-                    llm,
-                    refresh_lock,
-                    "Refreshing model catalog after Bedrock model change...",
-                );
-                format!("Bedrock default model set to {model}.")
-            }
-            Err(e) => format!("Failed to save Bedrock model: {e:#}"),
-        }
-    } else {
-        match lower.as_str() {
-            "status" => {
-                let state = crate::bedrock_auth::CredentialState::snapshot();
-                if state.env_set {
-                    format!(
-                        "Bedrock is configured via {} environment variable.\n\
-                         Region: {}\n\
-                         Model: {}\n\
-                         Catalog: {}",
-                        crate::bedrock_client::BEDROCK_API_KEY_ENV,
-                        crate::bedrock_auth::region_from_any_source(),
-                        crate::bedrock_auth::model_from_any_source(),
-                        sessions.bedrock_catalog_mode().as_str(),
-                    )
-                } else {
-                    match crate::bedrock_auth::read() {
-                        Ok(Some(auth)) => {
-                            let region = auth.region.as_deref().unwrap_or("(default)");
-                            let model = auth.default_model.as_deref().unwrap_or("(default)");
-                            format!(
-                                "Bedrock credentials:\n  Token: saved (length {})\n  Region: {region}\n  Model: {model}\n  Catalog: {}",
-                                auth.bearer_token.len(),
-                                sessions.bedrock_catalog_mode().as_str()
-                            )
-                        }
-                        Ok(None) if state.legacy_secrets_present => format!(
-                            "Bedrock is configured from a legacy `~/.secrets` credential file.\n  \
-                             Region: {}\n  Model: {}\n\n\
-                             Tip: migrate to a managed credential file with `/setup bedrock key <token>`.",
-                            crate::bedrock_auth::region_from_any_source(),
-                            crate::bedrock_auth::model_from_any_source(),
-                        ),
-                        Ok(None) => {
-                            "No Bedrock credentials found. Run `/setup bedrock key <token>`."
-                                .to_string()
-                        }
-                        Err(e) => format!("Failed to read Bedrock credentials: {e:#}"),
-                    }
-                }
-            }
-            "disconnect" => {
-                let state = crate::bedrock_auth::CredentialState::snapshot();
-                match crate::bedrock_auth::logout() {
-                    Ok(()) => {
-                        llm.uninstall_bedrock();
-                        refresh_catalog_after(
-                            cx,
-                            session_id,
-                            sessions,
-                            llm,
-                            refresh_lock,
-                            "Refreshing model catalog after Bedrock disconnect...",
-                        );
-                        render_bedrock_disconnect_success(state)
-                    }
-                    Err(e) => format!("Failed to remove Bedrock credentials: {e:#}"),
-                }
-            }
-            _ => format!(
-                "Unknown Bedrock setup option `{rest}`.\n\n{}",
-                render_bedrock_setup_help()
-            ),
-        }
-    }
-}
-
-fn render_bedrock_disconnect_success(state: crate::bedrock_auth::CredentialState) -> String {
-    if state.env_owns() {
-        let env = crate::bedrock_client::BEDROCK_API_KEY_ENV;
-        return format!(
-            "Bedrock local credential files cleared and the in-memory backend was unloaded, but \
-             {env} is still set.\n\
-             Unset it and restart Draupnir to fully disconnect Bedrock:\n\n  unset {env}\n\n\
-             If it comes back after restart, remove it from your shell profile or secrets manager."
-        );
-    }
-
-    if state.active_source() == "legacy" {
-        "Bedrock legacy `~/.secrets` credentials cleared and the in-memory backend was unloaded. Run `/setup bedrock key <token>` to reconnect."
-            .to_string()
-    } else {
-        "Bedrock credentials cleared and the in-memory backend was unloaded. Run `/setup bedrock key <token>` to reconnect."
-            .to_string()
-    }
-}
-
-fn render_bedrock_setup_help() -> String {
-    let state = crate::bedrock_auth::CredentialState::snapshot();
-    let status = match state.active_source() {
-        "env" => format!(
-            "Bedrock is connected from the {} environment variable.",
-            crate::bedrock_client::BEDROCK_API_KEY_ENV
-        ),
-        "file" => "Bedrock is connected from saved credentials.".to_string(),
-        "legacy" => "Bedrock is connected from a legacy `~/.secrets` credential file.".to_string(),
-        _ => "Bedrock is not connected.".to_string(),
-    };
-    let key_help = if state.env_owns() {
-        "Credentials are managed by the environment variable. Unset it and restart to use `/setup bedrock key`."
-            .to_string()
-    } else {
-        "If this client supports setup forms, run `/setup bedrock` and enter the token in the out-of-transcript field.\n\
-         Text fallback: `/setup bedrock key <token>` (the token will appear in the session transcript)."
-            .to_string()
-    };
-    format!(
-        "Use AWS Bedrock\n\n\
-         Scope: global provider connection; model selection applies to the current session.\n\n\
-         {status}\n\n\
-         {key_help}\n\n\
-         You also need:\n\
-         - A region (default: us-east-1): `/setup bedrock region <region>`\n\
-         - A model (default: us.anthropic.claude-sonnet-4-6): `/setup bedrock model <id>`\n\
-         - A catalog mode (current: {}): `/setup bedrock catalog`\n\n\
-         Other commands:\n\
-         - `/setup bedrock catalog mantle-only|native-only|mantle-preferred|native-preferred`\n\
-         - `/setup bedrock status`\n\
-         - `/setup bedrock disconnect`\n\
-         - `/setup bedrock refresh`\n\n\
-         Choose for me: `/setup choose`.",
-        crate::setup_state::bedrock_catalog_mode().as_str()
-    )
-}
-
 /// Handle `/setup deepseek` and its subcommands: `key <key>` stores the
 /// API key in the consolidated secrets store and installs the backend
 /// live, `status` reports where the active credential comes from, and
-/// `disconnect` wipes the stored key. Mirrors the Bedrock flow, including
-/// the env-owns contract: when `DEEPSEEK_API_KEY` is set, the command
+/// `disconnect` wipes the stored key. The env-owns contract means that
+/// when `DEEPSEEK_API_KEY` is set, the command
 /// explains rather than mutating state the environment will shadow.
 async fn handle_setup_deepseek(
     cx: &ConnectionTo<Client>,
@@ -9506,11 +8953,6 @@ fn render_setup_models(catalog: &[ModelMetadata]) -> String {
         };
 
         write_group(
-            "Bedrock",
-            source_model_ids(catalog, ModelSource::BEDROCK, 12),
-            "No Bedrock models found. Run `/setup bedrock` to configure your token and region.",
-        );
-        write_group(
             "Codex",
             source_model_ids(catalog, ModelSource::CODEX, 12),
             "No Codex models found. Run `/setup codex`.",
@@ -9651,10 +9093,6 @@ async fn render_setup_advanced(sessions: &SessionStore, session_id: &str) -> Str
             "disabled"
         }
     ));
-    out.push_str(&format!(
-        "- Bedrock catalog mode: `{}`\n\n",
-        sessions.bedrock_catalog_mode().as_str()
-    ));
     out.push_str("Current-session commands:\n");
     out.push_str("- `/setup model` - list model ids.\n");
     out.push_str("- `/setup model <model id>` - choose a specific model.\n");
@@ -9671,9 +9109,6 @@ async fn render_setup_advanced(sessions: &SessionStore, session_id: &str) -> Str
         "- `/setup sandbox default|os|wasm|off` - choose the sandbox strategy for this and future sessions.\n",
     );
     out.push_str("- `/setup recap on|off` - toggle automatic turn recaps.\n");
-    out.push_str(
-        "- `/setup bedrock catalog` - choose Bedrock model discovery and conflict precedence.\n",
-    );
     if !openrouter_picks.is_empty() {
         out.push_str("\nFiltered OpenRouter coding candidates:\n");
         for id in openrouter_picks {
@@ -12239,118 +11674,6 @@ mod tests {
         assert!(dump.contains("/setup openrouter key <your key>"));
     }
 
-    #[tokio::test]
-    async fn bedrock_setup_reports_env_owned_credentials() {
-        use crate::openrouter_auth::test_support::{ENV_GUARD, EnvScope};
-        let _lock = ENV_GUARD.lock().await;
-        let tmp_cfg = tempfile::tempdir().unwrap();
-        let _brokk = EnvScope::set("BROKK_CONFIG_HOME", tmp_cfg.path());
-        let _secrets = EnvScope::set("BROKK_SECRETS_HOME", tmp_cfg.path());
-        let _env = EnvScope::set("AWS_BEARER_TOKEN_BEDROCK", "bedrock-from-env");
-
-        let dump = render_bedrock_setup_help();
-
-        assert!(
-            dump.contains("AWS_BEARER_TOKEN_BEDROCK"),
-            "dump must report env as active source; got:\n{dump}"
-        );
-        assert!(
-            dump.contains("Unset it and restart"),
-            "env-owned setup should not invite file writes; got:\n{dump}"
-        );
-    }
-
-    #[tokio::test]
-    async fn bedrock_setup_reports_file_owned_credentials() {
-        use crate::openrouter_auth::test_support::{ENV_GUARD, EnvScope};
-        let _lock = ENV_GUARD.lock().await;
-        let tmp_cfg = tempfile::tempdir().unwrap();
-        let _brokk = EnvScope::set("BROKK_CONFIG_HOME", tmp_cfg.path());
-        let _secrets = EnvScope::set("BROKK_SECRETS_HOME", tmp_cfg.path());
-        let _env = EnvScope::remove("AWS_BEARER_TOKEN_BEDROCK");
-        crate::bedrock_auth::write(&crate::bedrock_auth::BedrockAuth {
-            bearer_token: "bedrock-on-disk".to_string(),
-            region: Some("eu-west-1".to_string()),
-            default_model: Some("us.anthropic.claude-sonnet-4-6".to_string()),
-        })
-        .unwrap();
-
-        let dump = render_bedrock_setup_help();
-
-        assert!(
-            dump.contains("saved credentials"),
-            "dump must report file as active source; got:\n{dump}"
-        );
-        assert!(dump.contains("/setup bedrock status"));
-    }
-
-    #[tokio::test]
-    async fn bedrock_setup_reports_no_credentials() {
-        use crate::openrouter_auth::test_support::{ENV_GUARD, EnvScope};
-        let _lock = ENV_GUARD.lock().await;
-        let tmp_cfg = tempfile::tempdir().unwrap();
-        let _brokk = EnvScope::set("BROKK_CONFIG_HOME", tmp_cfg.path());
-        let _secrets = EnvScope::set("BROKK_SECRETS_HOME", tmp_cfg.path());
-        let _env = EnvScope::remove("AWS_BEARER_TOKEN_BEDROCK");
-
-        let dump = render_bedrock_setup_help();
-
-        assert!(dump.contains("Bedrock is not connected"), "dump:\n{dump}");
-        assert!(dump.contains("/setup bedrock key <token>"));
-    }
-
-    /// Regression: a token only in the legacy `~/.secrets/` fallback (the
-    /// backend resolves it, so models load) must be reported as connected
-    /// rather than "not connected" / missing-key.
-    #[tokio::test]
-    async fn bedrock_setup_reports_secrets_backed_credentials() {
-        use crate::openrouter_auth::test_support::{ENV_GUARD, EnvScope};
-        let _lock = ENV_GUARD.lock().await;
-        let tmp_cfg = tempfile::tempdir().unwrap();
-        let tmp_secrets = tempfile::tempdir().unwrap();
-        let _brokk = EnvScope::set("BROKK_CONFIG_HOME", tmp_cfg.path());
-        let _secrets = EnvScope::set("BROKK_SECRETS_HOME", tmp_secrets.path());
-        let _env = EnvScope::remove("AWS_BEARER_TOKEN_BEDROCK");
-        std::fs::write(tmp_secrets.path().join("bedrock_api_key"), "secret-token\n").unwrap();
-
-        let dump = render_bedrock_setup_help();
-
-        assert!(
-            dump.contains("legacy `~/.secrets` credential file"),
-            "dump must report the secrets fallback as connected; got:\n{dump}"
-        );
-        assert!(
-            !dump.contains("Bedrock is not connected"),
-            "secrets-backed setup must not report disconnected; got:\n{dump}"
-        );
-    }
-
-    #[test]
-    fn bedrock_disconnect_success_shows_unset_command_when_env_remains() {
-        let msg = render_bedrock_disconnect_success(crate::bedrock_auth::CredentialState {
-            env_set: true,
-            file_present: true,
-            legacy_secrets_present: true,
-        });
-
-        assert!(
-            msg.contains("local credential files cleared"),
-            "message should confirm local file cleanup; got:\n{msg}"
-        );
-        assert!(
-            msg.contains("in-memory backend was unloaded"),
-            "message should describe current runtime disconnect; got:\n{msg}"
-        );
-        assert!(
-            msg.contains("unset AWS_BEARER_TOKEN_BEDROCK"),
-            "message should show the shell command to fully disconnect; got:\n{msg}"
-        );
-        assert!(
-            msg.contains("restart Draupnir"),
-            "message should explain restart is needed after unsetting env; got:\n{msg}"
-        );
-    }
-
     /// The handler short-circuits with the env-owned explanation for
     /// every subcommand when `OPENROUTER_API_KEY` is set. We assert the
     /// bare and `<key>` paths -- they're the ones that would mutate
@@ -12366,11 +11689,6 @@ mod tests {
 
         let store = SessionStore::new("m".into());
         let llm = std::sync::Arc::new(crate::multi_backend::MultiBackend::new(vec![
-            crate::multi_backend::BackendRegistration::new(
-                crate::discovery::ModelSource::BEDROCK,
-                "Bedrock",
-                None,
-            ),
             crate::multi_backend::BackendRegistration::new(
                 crate::discovery::ModelSource::CODEX,
                 "Codex",
@@ -13478,8 +12796,6 @@ mod tests {
             vec![
                 "choose",
                 "codex",
-                "bedrock",
-                "bedrock-catalog",
                 "local",
                 "deepseek",
                 "grok",
@@ -13716,76 +13032,29 @@ mod tests {
     }
 
     #[test]
-    fn setup_elicitation_target_recognizes_hosted_provider_logins() {
-        assert_eq!(
-            setup_elicitation_target("/setup bedrock"),
-            Some(SetupElicitTarget::BedrockLogin)
-        );
+    fn setup_elicitation_target_recognizes_deepseek_login() {
         assert_eq!(
             setup_elicitation_target("/setup deepseek"),
             Some(SetupElicitTarget::DeepSeekLogin)
         );
-        assert_eq!(
-            setup_elicitation_target("/setup bedrock catalog"),
-            Some(SetupElicitTarget::BedrockCatalog)
-        );
-        for prompt in [
-            "/setup bedrock key token",
-            "/setup bedrock status",
-            "/setup bedrock catalog native-only",
-            "/setup deepseek key secret",
-            "/setup deepseek disconnect",
-        ] {
+        for prompt in ["/setup deepseek key secret", "/setup deepseek disconnect"] {
             assert_eq!(setup_elicitation_target(prompt), None, "prompt: {prompt}");
         }
     }
 
     #[test]
-    fn bedrock_catalog_elicitation_request_shape() {
-        let req = build_bedrock_catalog_elicitation_request(
-            "sess-bedrock",
-            crate::setup_state::BedrockCatalogMode::MantlePreferred,
-        );
-        let json = serde_json::to_value(&req).unwrap();
-
-        assert_eq!(json["mode"], "form");
-        assert_eq!(json["sessionId"], "sess-bedrock");
-        let catalog = &json["requestedSchema"]["properties"]["catalog"];
-        assert_eq!(catalog["default"], "mantle-preferred");
-        let values: Vec<&str> = catalog["oneOf"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|option| option["const"].as_str().unwrap())
-            .collect();
-        assert_eq!(
-            values,
-            vec![
-                "mantle-only",
-                "native-only",
-                "mantle-preferred",
-                "native-preferred"
-            ]
-        );
-    }
-
-    #[test]
-    fn hosted_provider_login_targets_require_form_capability() {
+    fn deepseek_login_target_requires_form_capability() {
         use crate::session::ClientElicitationCaps;
-        for target in [
-            SetupElicitTarget::BedrockLogin,
-            SetupElicitTarget::DeepSeekLogin,
-        ] {
-            assert!(!target.is_supported(ClientElicitationCaps::default()));
-            assert!(!target.is_supported(ClientElicitationCaps {
-                form: false,
-                url: true,
-            }));
-            assert!(target.is_supported(ClientElicitationCaps {
-                form: true,
-                url: false,
-            }));
-        }
+        let target = SetupElicitTarget::DeepSeekLogin;
+        assert!(!target.is_supported(ClientElicitationCaps::default()));
+        assert!(!target.is_supported(ClientElicitationCaps {
+            form: false,
+            url: true,
+        }));
+        assert!(target.is_supported(ClientElicitationCaps {
+            form: true,
+            url: false,
+        }));
     }
 
     #[test]
@@ -13797,17 +13066,8 @@ mod tests {
             ModelMetadata::id_only("ds4::demo"),
             ModelMetadata::id_only("ollama::demo"),
             ModelMetadata::id_only("codex::demo"),
-            ModelMetadata::id_only("bedrock::demo"),
         ];
-        for expected in [
-            "bedrock",
-            "codex",
-            "ollama",
-            "ds4",
-            "deepseek",
-            "grok",
-            "openrouter",
-        ] {
+        for expected in ["codex", "ollama", "ds4", "deepseek", "grok", "openrouter"] {
             let selected = preferred_model(&catalog).expect("a provider should remain");
             assert!(selected.starts_with(&format!("{expected}::")));
             catalog.retain(|model| !model.id.starts_with(&format!("{expected}::")));
@@ -13817,7 +13077,7 @@ mod tests {
 
     #[tokio::test]
     async fn discovery_only_seeds_an_empty_process_default() {
-        let catalog = vec![ModelMetadata::id_only("bedrock::preferred")];
+        let catalog = vec![ModelMetadata::id_only("deepseek::preferred")];
 
         let configured = SessionStore::new("codex::explicit".to_string());
         seed_default_model_if_empty(&configured, &catalog).await;
@@ -13825,7 +13085,7 @@ mod tests {
 
         let empty = SessionStore::new(String::new());
         seed_default_model_if_empty(&empty, &catalog).await;
-        assert_eq!(empty.default_model().await, "bedrock::preferred");
+        assert_eq!(empty.default_model().await, "deepseek::preferred");
     }
 
     /// OpenRouter key entry is a form-mode elicitation, so it needs `form`.

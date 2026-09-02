@@ -28,7 +28,7 @@ ACP session options are client-owned. Model, behavior, reasoning effort, service
 - Any compatible client can use the [custom ACP client contract](/other-acp-clients/).
 - The Rust [client examples](/build-acp-client/) demonstrate issue triage, code review, and issue drafting.
 
-Codex/ChatGPT, Bedrock, Ollama, ds4, DeepSeek, Kimi, OpenAI-compatible endpoints, and OpenRouter are [model providers](/providers/), not ACP clients.
+Codex/ChatGPT, Ollama, ds4, DeepSeek, Kimi, OpenAI-compatible endpoints, and OpenRouter are [model providers](/providers/), not ACP clients.
 
 ## Start Here
 

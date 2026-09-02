@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn configured_model_uses_provider_default_effort() {
         let selected =
-            UtilityModelConfig::new(Some("deepseek::flash".to_string())).select("bedrock::luna");
+            UtilityModelConfig::new(Some("deepseek::flash".to_string())).select("deepseek::luna");
         assert_eq!(selected.model, "deepseek::flash");
         assert_eq!(selected.reasoning_effort, None);
         assert_eq!(selected.source, "configured");
@@ -70,8 +70,8 @@ mod tests {
 
     #[test]
     fn unset_model_uses_session_at_low_effort() {
-        let selected = UtilityModelConfig::default().select("bedrock::luna");
-        assert_eq!(selected.model, "bedrock::luna");
+        let selected = UtilityModelConfig::default().select("deepseek::luna");
+        assert_eq!(selected.model, "deepseek::luna");
         assert_eq!(selected.reasoning_effort.as_deref(), Some("low"));
         assert_eq!(selected.source, "session_fallback");
     }

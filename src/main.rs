@@ -8,9 +8,6 @@ use clap::{Parser, Subcommand};
 mod acp;
 mod agents;
 mod agents_md;
-mod bedrock_auth;
-mod bedrock_client;
-mod bedrock_credits;
 mod codex_auth;
 mod codex_client;
 mod codex_credits;
@@ -281,7 +278,7 @@ enum Command {
     #[cfg(feature = "http-api")]
     Serve(http_api::ServeArgs),
     /// List every model currently discoverable from the configured providers
-    /// (Codex, Ollama, DeepSeek, Kimi, OpenRouter, Bedrock, generic
+    /// (Codex, Ollama, DeepSeek, Kimi, OpenRouter, generic
     /// OpenAI-compatible providers, ds4). Prints one wire id per line by
     /// default; `--json` prints the full catalog metadata.
     Models {
@@ -445,7 +442,7 @@ pub fn deepseek_backend_from_key(raw: &str) -> Option<Arc<dyn LlmBackend>> {
 
 /// Build the hosted DeepSeek backend from `DEEPSEEK_API_KEY`, falling back
 /// to the consolidated secrets store (written by `/setup deepseek key`).
-/// Precedence matches OpenRouter and Bedrock: env > file > nothing.
+/// Precedence matches OpenRouter: env > file > nothing.
 fn build_deepseek_backend() -> Option<Arc<dyn LlmBackend>> {
     if let Ok(raw) = std::env::var(discovery::DEEPSEEK_API_KEY_ENV) {
         let trimmed = raw.trim();
@@ -642,49 +639,15 @@ fn build_openai_compatible_backend() -> Result<Option<Arc<dyn LlmBackend>>> {
     Ok(openai_providers::build_backend(config))
 }
 
-fn build_bedrock_backend(
-    catalog_mode: setup_state::BedrockCatalogMode,
-) -> Option<Arc<dyn LlmBackend>> {
-    let backend: Arc<dyn LlmBackend> = match bedrock_client::backend_config() {
-        Ok(Some((token, region, model))) => {
-            Arc::new(bedrock_client::BedrockClient::new_with_catalog_mode(
-                token,
-                region,
-                model,
-                catalog_mode,
-            ))
-        }
-        Ok(None) => return None,
-        Err(e) => {
-            tracing::warn!("failed to read Bedrock credentials: {e:#}");
-            return None;
-        }
-    };
-    let region = bedrock_client::region_from_env();
-    let model = bedrock_client::model_from_env();
-    let state = bedrock_auth::CredentialState::snapshot();
-    tracing::info!(
-        "Bedrock backend wired from {} at region {region}; default model {model}",
-        state.active_source()
-    );
-    Some(backend)
-}
-
 /// Build the full model catalog backend set from every configured provider
-/// (Codex, Ollama, hosted DeepSeek, Kimi, Grok, OpenRouter, Bedrock, generic
+/// (Codex, Ollama, hosted DeepSeek, Kimi, Grok, OpenRouter, generic
 /// OpenAI-compatible providers, ds4). Shared by the main agent path and the
 /// `models` CLI subcommand so both always see the same set of backends.
-async fn build_multi_backend(transient_setup: bool) -> Result<Arc<MultiBackend>> {
+async fn build_multi_backend() -> Result<Arc<MultiBackend>> {
     // Fold any pre-consolidation per-provider credential files into the
     // single secrets store before the backends read their credentials.
     secrets::migrate_legacy_files();
 
-    let bedrock_catalog_mode = if transient_setup {
-        setup_state::BedrockCatalogMode::default()
-    } else {
-        setup_state::bedrock_catalog_mode()
-    };
-    let bedrock_backend = build_bedrock_backend(bedrock_catalog_mode);
     let codex_backend = build_codex_backend().await;
     let deepseek_backend = build_deepseek_backend();
     let kimi_backend = build_kimi_backend();
@@ -693,12 +656,6 @@ async fn build_multi_backend(transient_setup: bool) -> Result<Arc<MultiBackend>>
     let openrouter_backend = build_openrouter_backend();
     let ollama_backend = Some(build_ollama_backend());
 
-    if bedrock_backend.is_none() {
-        tracing::info!(
-            "Bedrock backend not available; set {} or run `/setup bedrock key <token>` from a session to enable it.",
-            bedrock_client::BEDROCK_API_KEY_ENV
-        );
-    }
     if codex_backend.is_none() {
         tracing::info!(
             "Codex backend not available; the picker will fall back to Ollama \
@@ -737,7 +694,6 @@ async fn build_multi_backend(transient_setup: bool) -> Result<Arc<MultiBackend>>
     }
 
     Ok(Arc::new(MultiBackend::new(vec![
-        BackendRegistration::new(discovery::ModelSource::BEDROCK, "Bedrock", bedrock_backend),
         BackendRegistration::new(discovery::ModelSource::CODEX, "Codex", codex_backend),
         BackendRegistration::new(
             discovery::ModelSource::OLLAMA,
@@ -768,8 +724,8 @@ async fn build_multi_backend(transient_setup: bool) -> Result<Arc<MultiBackend>>
 /// `draupnir models`: discover all models from the configured providers and
 /// print the resulting catalog, one wire id per line (`--json` for the full
 /// metadata). Mirrors the catalog a session's model picker shows.
-async fn run_models(transient_setup: bool, json: bool) -> Result<()> {
-    let llm = build_multi_backend(transient_setup).await?;
+async fn run_models(json: bool) -> Result<()> {
+    let llm = build_multi_backend().await?;
     let models = llm.list_model_metadata().await?;
     if json {
         println!("{}", serde_json::to_string_pretty(&models)?);
@@ -841,7 +797,7 @@ async fn draupnir_main() -> Result<()> {
         return infer::run(infer_args).await;
     }
     if let Some(Command::Models { json }) = &args.command {
-        return run_models(args.transient_setup, *json).await;
+        return run_models(*json).await;
     }
 
     // Install the parser sandbox before any code that might load a SKILL.md
@@ -926,7 +882,7 @@ async fn draupnir_main() -> Result<()> {
         ),
     }
 
-    let llm = build_multi_backend(args.transient_setup).await?;
+    let llm = build_multi_backend().await?;
 
     // Kick off model discovery eagerly so any provider errors ("skipped"
     // log lines with HTTP status codes) appear immediately in the startup

@@ -1,5 +1,4 @@
-//! Auto-discover available LLM models from Bedrock, Codex
-//! (`~/.codex/auth.json`), a local Ollama daemon
+//! Auto-discover available LLM models from Codex (`~/.codex/auth.json`), a local Ollama daemon
 //! (`http://localhost:11434/v1/models`), a local ds4-server
 //! (antirez/ds4, an OpenAI-compatible DeepSeek V4 inference engine), and
 //! Kimi Code, Grok Build OAuth, generic OpenAI-compatible profiles from `providers.json`,
@@ -53,7 +52,6 @@ use crate::llm_client::{ModelMetadata, ReasoningLevelPreset};
 pub struct ModelSource;
 
 impl ModelSource {
-    pub const BEDROCK: &'static str = "bedrock";
     pub const CODEX: &'static str = "codex";
     pub const DEEPSEEK: &'static str = "deepseek";
     pub const DS4: &'static str = "ds4";
