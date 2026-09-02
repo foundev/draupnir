@@ -4758,14 +4758,12 @@ async fn run_model_turn_in_spawn(
         std::sync::Arc::new(std::sync::Mutex::new(move |token: &str| {
             send_message(&cx_text, &sid_text, token);
         }));
-    // Reasoning deltas arrive as arbitrarily small provider fragments;
-    // coalesce them so each session update carries a readable batch instead
-    // of a one-word thought block (see CoalescingSink).
-    let send = move |batch: String| {
-        send_thought(&cx_thought, &sid_thought, &batch);
-    };
-    let (thought_sink, thought_coalescer) =
-        crate::tool_loop::CoalescingSink::start(std::time::Duration::from_millis(50), send);
+    // LLM adapters emit thought updates at reasoning lifecycle boundaries,
+    // so ACP transcript cadence is independent of a wall-clock timer.
+    let thought_sink: crate::tool_loop::TextSink =
+        std::sync::Arc::new(std::sync::Mutex::new(move |batch: &str| {
+            send_thought(&cx_thought, &sid_thought, batch);
+        }));
 
     let cx_for_gate = cx.clone();
     let spawned_cx = crate::tool_loop::SpawnedCx::new(&cx_for_gate);
@@ -4796,11 +4794,6 @@ async fn run_model_turn_in_spawn(
         permission_broker: &spawned_cx,
     })
     .await;
-
-    let leftover = thought_coalescer.stop();
-    if !leftover.is_empty() {
-        send_thought(cx, session_id, &leftover);
-    }
 
     send_session_usage_update_with_breakdown(
         cx,

@@ -1426,8 +1426,9 @@ fn reasoning_input_item(item: &CodexReasoningItem) -> ResponsesInputItem {
 
 /// Subset of `ResponsesStreamEvent` from codex-rs we actually consume.
 /// Text deltas surface via `on_token`; reasoning deltas (`response.reasoning_text.delta`,
-/// `response.reasoning_summary_text.delta`) route to `on_thought`; other unknown event
-/// types (`response.metadata`, rate-limit snapshots, etc.) deserialize successfully but
+/// `response.reasoning_summary_text.delta`) are held until their matching `.done` event
+/// or the next output item and then route to `on_thought`; other unknown event types
+/// (`response.metadata`, rate-limit snapshots, etc.) deserialize successfully but
 /// contribute nothing beyond resetting the idle timer.
 #[derive(Debug, Deserialize)]
 struct StreamEvent {
@@ -1612,6 +1613,7 @@ where
     // `full_text.is_empty()` for that decision conflated the two and
     // could double-emit the assistant text when a server sent both.
     let mut deltas_received = false;
+    let mut pending_thought = String::new();
 
     loop {
         tokio::select! {
@@ -1694,6 +1696,10 @@ where
                             if let Some(delta) = event.delta {
                                 made_progress = true;
                                 deltas_received = true;
+                                crate::llm_client::flush_pending_thought(
+                                    &mut pending_thought,
+                                    &mut on_thought,
+                                );
                                 on_token(&delta);
                                 full_text.push_str(&delta);
                             }
@@ -1704,6 +1710,10 @@ where
                             {
                                 match item {
                                     OutputItem::Message { role, content } => {
+                                        crate::llm_client::flush_pending_thought(
+                                            &mut pending_thought,
+                                            &mut on_thought,
+                                        );
                                         // Some servers stream the entire
                                         // assistant message via output_item.done
                                         // without ever emitting deltas (e.g. a
@@ -1729,6 +1739,10 @@ where
                                         arguments,
                                         call_id,
                                     } => {
+                                        crate::llm_client::flush_pending_thought(
+                                            &mut pending_thought,
+                                            &mut on_thought,
+                                        );
                                         // The Responses API uses `call_id` as
                                         // the persistent identifier; brokk's
                                         // `ToolCall.id` doubles as the
@@ -1778,6 +1792,10 @@ where
                             }
                         }
                         "response.completed" => {
+                            crate::llm_client::flush_pending_thought(
+                                &mut pending_thought,
+                                &mut on_thought,
+                            );
                             if let Some(final_body) = event.response
                                 && let Some(u) = final_body.usage
                             {
@@ -1787,6 +1805,10 @@ where
                             break;
                         }
                         "response.failed" => {
+                            crate::llm_client::flush_pending_thought(
+                                &mut pending_thought,
+                                &mut on_thought,
+                            );
                             let msg = event
                                 .response
                                 .and_then(|r| r.error)
@@ -1806,6 +1828,10 @@ where
                             break;
                         }
                         "response.incomplete" => {
+                            crate::llm_client::flush_pending_thought(
+                                &mut pending_thought,
+                                &mut on_thought,
+                            );
                             if let Some(final_body) = event.response {
                                 if let Some(u) = final_body.usage {
                                     usage = u.into_usage();
@@ -1837,22 +1863,24 @@ where
                                 );
                             }
                         }
-                        // Chain-of-thought deltas: route to the
-                        // dedicated `on_thought` sink (the agent layer
-                        // wraps it as an ACP `AgentThoughtChunk` so
-                        // clients can render reasoning text in a
-                        // collapsible block rather than interleaved
-                        // with the final answer). Both event names
-                        // exist because Codex publishes raw reasoning
-                        // text on the high-effort path and condensed
-                        // summaries elsewhere; both belong in the
-                        // same channel for the client.
+                        // Chain-of-thought deltas stay buffered until the
+                        // provider signals the reasoning boundary. This
+                        // mirrors the higher-level OpenRouter lifecycle and
+                        // keeps ACP thought blocks independent of token rate.
                         "response.reasoning_text.delta"
                         | "response.reasoning_summary_text.delta" => {
                             if let Some(delta) = event.delta {
                                 made_progress = true;
-                                on_thought(&delta);
+                                pending_thought.push_str(&delta);
                             }
+                        }
+                        "response.reasoning_text.done"
+                        | "response.reasoning_summary_text.done" => {
+                            crate::llm_client::flush_pending_thought(
+                                &mut pending_thought,
+                                &mut on_thought,
+                            );
+                            made_progress = true;
                         }
                         // Other unmodeled events (metadata, rate-limit
                         // snapshots, output_item.added etc.) -- we
@@ -1880,10 +1908,12 @@ where
     }
 
     if let Some(err) = failure {
+        crate::llm_client::flush_pending_thought(&mut pending_thought, &mut on_thought);
         return Err(err);
     }
 
     if cancel.is_cancelled() {
+        crate::llm_client::flush_pending_thought(&mut pending_thought, &mut on_thought);
         return Ok(LlmResponse::Text {
             text: full_text,
             reasoning_content: None,
@@ -1893,11 +1923,14 @@ where
     }
 
     if !completed {
+        crate::llm_client::flush_pending_thought(&mut pending_thought, &mut on_thought);
         return Err(anyhow::Error::new(IncompleteStreamError::new(
             "Codex Responses SSE",
             "response.completed",
         )));
     }
+
+    crate::llm_client::flush_pending_thought(&mut pending_thought, &mut on_thought);
 
     if tool_calls.is_empty() {
         Ok(LlmResponse::Text {
@@ -3284,6 +3317,34 @@ mod tests {
         }
         assert_eq!(text.lock().unwrap().as_str(), "answer is A");
         assert_eq!(thought.lock().unwrap().as_str(), "weigh options => pick A");
+    }
+
+    #[tokio::test]
+    async fn sse_parser_flushes_thought_on_reasoning_done() {
+        let raw = concat!(
+            "data: {\"type\":\"response.reasoning_text.delta\",\"delta\":\"thinking\"}\n\n",
+            "data: {\"type\":\"response.reasoning_text.done\"}\n\n",
+            "data: {\"type\":\"response.output_text.delta\",\"delta\":\"answer\"}\n\n",
+            "data: {\"type\":\"response.completed\",\"response\":{}}\n\n",
+        );
+        let stream = futures::stream::iter(vec![Ok(raw.as_bytes().to_vec())]);
+        let thoughts = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let thoughts_for_cb = thoughts.clone();
+        let thought_sink = Box::new(move |text: &str| {
+            thoughts_for_cb.lock().unwrap().push(text.to_string());
+        });
+
+        drive_responses_sse_stream(
+            stream,
+            noop_sink(),
+            thought_sink,
+            CancellationToken::new(),
+            IdleTimeouts::uniform(Duration::from_secs(5)),
+        )
+        .await
+        .expect("stream completes");
+
+        assert_eq!(*thoughts.lock().unwrap(), vec!["thinking"]);
     }
 
     #[test]

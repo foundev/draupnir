@@ -235,6 +235,13 @@ where
 /// Owning callback handed token deltas as the LLM streams them.
 pub type TokenSink = Box<dyn FnMut(&str) + Send>;
 
+pub(crate) fn flush_pending_thought(pending: &mut String, on_thought: &mut TokenSink) {
+    if !pending.is_empty() {
+        let batch = std::mem::take(pending);
+        on_thought(&batch);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Tool calling types (OpenAI-compatible)
 // ---------------------------------------------------------------------------
@@ -1013,8 +1020,9 @@ pub trait LlmBackend: Send + Sync {
     /// backends that route to a reasoning-capable endpoint (today,
     /// `CodexClient` via the ChatGPT Responses API); other backends
     /// ignore it. `on_thought` receives chain-of-thought / reasoning
-    /// text deltas separate from the assistant text on `on_token`;
-    /// backends that don't surface reasoning never invoke it.
+    /// text separate from the assistant text on `on_token`; adapters may
+    /// hold deltas until the provider signals a reasoning boundary.
+    /// Backends that don't surface reasoning never invoke it.
     ///
     /// `idle_timeouts` contains the first-progress timeout and the
     /// post-progress inter-chunk stall timeout before the backend aborts
@@ -2191,6 +2199,7 @@ where
 {
     let mut full_text = String::new();
     let mut full_reasoning = String::new();
+    let mut pending_reasoning = String::new();
     let mut tool_acc = ToolCallAccumulator::default();
     let mut raw_buf: Vec<u8> = Vec::new();
     let mut deadline = tokio::time::Instant::now() + idle.first_progress;
@@ -2264,6 +2273,7 @@ where
                     };
 
                     if data == "[DONE]" {
+                        flush_pending_thought(&mut pending_reasoning, &mut on_thought);
                         let output_budget_exhausted =
                             last_finish_reason.as_deref() == Some("length");
                         let reasoning_content = (!full_reasoning.is_empty()).then_some(full_reasoning);
@@ -2302,6 +2312,7 @@ where
 
                     match serde_json::from_str::<ChatCompletionChunk>(data) {
                         Ok(chunk) => {
+                            let mut finished = false;
                             for choice in &chunk.choices {
                                 if let Some(reason) = choice
                                     .finish_reason
@@ -2310,22 +2321,31 @@ where
                                     .filter(|reason| !reason.is_empty())
                                 {
                                     last_finish_reason = Some(reason.to_string());
-                                }
-                                // Accumulate text content
-                                if let Some(content) = &choice.delta.content {
-                                    made_progress = true;
-                                    on_token(content);
-                                    full_text.push_str(content);
+                                    finished = true;
                                 }
                                 if let Some(reasoning_content) = &choice.delta.reasoning_content {
                                     made_progress = true;
-                                    on_thought(reasoning_content);
+                                    pending_reasoning.push_str(reasoning_content);
                                     full_reasoning.push_str(reasoning_content);
+                                }
+                                // Normal content marks the end of the
+                                // reasoning phase for this assistant
+                                // response. Flush before forwarding content,
+                                // including when both fields share one chunk.
+                                if let Some(content) = &choice.delta.content {
+                                    flush_pending_thought(&mut pending_reasoning, &mut on_thought);
+                                    made_progress = true;
+                                    on_token(content);
+                                    full_text.push_str(content);
                                 }
                                 // Accumulate tool call fragments
                                 if let Some(tc_chunks) = &choice.delta.tool_calls {
                                     if !tc_chunks.is_empty() {
                                         made_progress = true;
+                                        flush_pending_thought(
+                                            &mut pending_reasoning,
+                                            &mut on_thought,
+                                        );
                                     }
                                     for tc in tc_chunks {
                                         tool_acc.push(tc);
@@ -2342,6 +2362,9 @@ where
                             if let Some(u) = chunk.usage {
                                 usage = u.to_usage();
                                 made_progress = true;
+                            }
+                            if finished {
+                                flush_pending_thought(&mut pending_reasoning, &mut on_thought);
                             }
                         }
                         Err(e) => {
@@ -2365,6 +2388,7 @@ where
     // (arguments JSON truncated mid-stream). Return only the text we've already
     // streamed to the caller to avoid dispatching malformed tool calls.
     if cancel.is_cancelled() {
+        flush_pending_thought(&mut pending_reasoning, &mut on_thought);
         return Ok(LlmResponse::Text {
             text: full_text,
             reasoning_content: (!full_reasoning.is_empty()).then_some(full_reasoning),
@@ -2373,6 +2397,7 @@ where
         });
     }
 
+    flush_pending_thought(&mut pending_reasoning, &mut on_thought);
     Err(anyhow::Error::new(IncompleteStreamError::new(
         "chat completions SSE",
         "[DONE]",
@@ -3532,7 +3557,34 @@ mod tests {
             other => panic!("expected text response, got {other:?}"),
         }
         assert_eq!(*tokens.lock().unwrap(), vec!["ok"]);
-        assert_eq!(*thoughts.lock().unwrap(), vec!["think ", "hard"]);
+        assert_eq!(*thoughts.lock().unwrap(), vec!["think hard"]);
+    }
+
+    #[tokio::test]
+    async fn drive_sse_stream_flushes_reasoning_before_tool_calls() {
+        let chunks: Vec<Result<Vec<u8>>> = vec![
+            Ok(b"data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"check first\"}}]}\n".to_vec()),
+            Ok(b"data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_1\",\"function\":{\"name\":\"read_file\",\"arguments\":\"{\\\"file_path\\\":\\\"a.txt\\\"}\"}}]}}]}\n".to_vec()),
+            Ok(b"data: [DONE]\n".to_vec()),
+        ];
+        let thoughts = Arc::new(Mutex::new(Vec::<String>::new()));
+        let thoughts_for_cb = Arc::clone(&thoughts);
+        let on_thought: TokenSink = Box::new(move |s: &str| {
+            thoughts_for_cb.lock().unwrap().push(s.to_string());
+        });
+
+        let result = drive_sse_stream(
+            stream::iter(chunks),
+            Box::new(|_| {}),
+            on_thought,
+            CancellationToken::new(),
+            IdleTimeouts::uniform(Duration::from_secs(90)),
+        )
+        .await
+        .expect("tool-call stream should complete");
+
+        assert!(matches!(result, LlmResponse::ToolCalls { .. }));
+        assert_eq!(*thoughts.lock().unwrap(), vec!["check first"]);
     }
 
     #[test]
