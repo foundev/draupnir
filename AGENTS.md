@@ -30,7 +30,7 @@ Prerequisite: `rustup target add wasm32-wasip2` (needed by `build.rs` when the d
 
 ## Release workflow
 
-Releases are driven by a `vX.Y.Z` tag on master. The tag fans out to three
-workflows at once (GitHub Release, Publish crate, Docs), so **everything below
-must be true before the tag is pushed** — a red master or a stale generated
-file turns into a failed publication, not just a failed check.
+Releases are driven by a `vX.Y.Z` tag on master. The tag triggers the GitHub
+Release and Docs workflows, while CI also validates tag pushes, so **everything
+below must be true before the tag is pushed** — a red master or a stale
+generated file turns into a failed release, not just a failed check.
