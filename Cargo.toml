@@ -32,7 +32,7 @@ agent-client-protocol = { version = "2", features = ["unstable"] }
 # HTTP daemon for `draupnir serve` (#317). Server-side only; LLM/MCP client
 # traffic stays on `reqwest`. Optional: gated behind the `http-api` feature.
 axum = { version = "0.8", optional = true }
-# Dependency-renamed so imports stay `draupnir_minimizer::` while the published
+# Dependency-renamed so imports stay `draupnir_minimizer::` while the packaged
 # crate is namespaced. The minimizer is versioned in lockstep with this crate:
 # bump this requirement, the minimizer's version, and the root version
 # together on every release (CI enforces the match).

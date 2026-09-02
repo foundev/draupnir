@@ -112,7 +112,7 @@ detect_platform() {
       fi
       ;;
     MINGW* | MSYS* | CYGWIN*)
-      die "Windows release assets are not installed by this script. Download the archive from https://github.com/${OWNER}/${REPO}/releases, install from source with 'cargo install brokk-draupnir --locked', or run this script in WSL."
+      die "Windows release assets are not installed by this script. Download the archive from https://github.com/${OWNER}/${REPO}/releases, build from source, or run this script in WSL."
       ;;
     *) die "unsupported OS: ${uname_s}" ;;
   esac

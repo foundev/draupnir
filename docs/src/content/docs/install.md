@@ -1,6 +1,6 @@
 ---
 title: Install Draupnir
-description: Install a released Draupnir binary, use Cargo, or build from source.
+description: Install a released Draupnir binary or build from source.
 ---
 
 Draupnir runs as a subprocess launched by an ACP client. Prefer a released binary when evaluating it: this avoids a large Rust and Wasmtime compile.
@@ -41,10 +41,10 @@ when it is missing and the terminal is interactive.
 | macOS | Apple Silicon and Intel | Yes | `universal-apple-darwin` |
 | Linux (glibc) | x86-64 | Yes | `x86_64-unknown-linux-gnu` |
 | Linux (glibc) | ARM64 | Yes | `aarch64-unknown-linux-gnu` |
-| Linux (musl, such as Alpine) | x86-64 and ARM64 | No, use Cargo | none published |
+| Linux (musl, such as Alpine) | x86-64 and ARM64 | No, build from source | none published |
 | WSL 1 and WSL 2 | x86-64 and ARM64 | Yes, as Linux | Linux targets above |
 | Android (Termux) | ARM64 | Yes | `aarch64-linux-android` |
-| Windows | x86-64 | No, use Cargo or the release archive | `x86_64-pc-windows-msvc` |
+| Windows | x86-64 | No, use the release archive or build from source | `x86_64-pc-windows-msvc` |
 
 The script stops with an explanation on musl-based Linux rather than installing
 a glibc binary that cannot run.
@@ -58,8 +58,8 @@ WSL needs to launch Draupnir.
 
 ### Windows
 
-The install script does not cover Windows. Use [Cargo](#install-with-cargo), or
-download the `.zip` archive and matching `.sha256` sidecar from the
+The install script does not cover Windows. Download the `.zip` archive and
+matching `.sha256` sidecar from the
 [release page](https://github.com/BrokkAi/draupnir/releases) and place `draupnir.exe`
 on your `PATH`. Running the script from Git Bash, MSYS2, or Cygwin does not
 install the Windows binary; use WSL only when you specifically want Draupnir to
@@ -155,20 +155,6 @@ When `--plugin` is omitted for Neovim, Draupnir prompts in an interactive termin
 and defaults to CodeCompanion in non-interactive use. Move the executable to its
 stable location before running an installer; editor settings retain that
 detected absolute path.
-
-## Install With Cargo
-
-The published crate is named `brokk-draupnir`; the executable is `draupnir`. Install a current stable Rust toolchain with [rustup](https://rustup.rs/) first. The default build embeds a Wasm sandbox and therefore needs the WASI Preview 2 target.
-
-```bash
-rustup toolchain install stable
-rustup default stable
-rustup target add wasm32-wasip2
-cargo install brokk-draupnir --locked --force
-draupnir --version
-```
-
-A cold Cargo install can take longer than the evaluation itself. Use the prebuilt archive when time matters.
 
 ## Build This Checkout
 

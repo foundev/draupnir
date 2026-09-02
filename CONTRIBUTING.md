@@ -166,11 +166,10 @@ Releases are maintainer-driven. `Cargo.toml` is the version source of truth;
 release-preparation commits update the `brokk-draupnir` version in both
 `Cargo.toml` and `Cargo.lock`.
 
-A `vX.Y.Z` tag triggers the GitHub release and crates.io workflows.
-The workflows refuse to publish when the tag and `Cargo.toml` version differ.
-They build the supported Linux, Android, Windows, and macOS archives, attach
-SHA-256 sidecars, include the required license and source-notice files, and
-publish the `brokk-draupnir` crate.
+A `vX.Y.Z` tag triggers the GitHub Release and Docs workflows. The release
+workflow refuses to build when the tag and `Cargo.toml` version differ. It
+builds the supported Linux, Android, Windows, and macOS archives, attaches
+SHA-256 sidecars, and includes the required license and source-notice files.
 
 To announce a published GitHub Release in Discord, set the
 `DISCORD_RELEASE_WEBHOOK_URL` repository Actions secret to the target channel's

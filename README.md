@@ -9,7 +9,6 @@
 <p align="center">
   <a href="https://github.com/BrokkAi/draupnir/actions/workflows/ci.yml"><img src="https://github.com/BrokkAi/draupnir/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/BrokkAi/draupnir/releases/latest"><img src="https://img.shields.io/github/v/release/BrokkAi/draupnir" alt="Latest release"></a>
-  <a href="https://crates.io/crates/brokk-draupnir"><img src="https://img.shields.io/crates/v/brokk-draupnir" alt="crates.io"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/BrokkAi/draupnir" alt="LGPL-3.0-only"></a>
 </p>
 
@@ -58,13 +57,7 @@ curl -fsSL https://raw.githubusercontent.com/BrokkAi/draupnir/refs/heads/master/
 draupnir --version
 ```
 
-To review the installer before running it, download `install.sh`, inspect it, then run it with `bash`. You can also download an archive from [GitHub Releases](https://github.com/BrokkAi/draupnir/releases/latest), or install from crates.io:
-
-```bash
-rustup target add wasm32-wasip2
-cargo install brokk-draupnir --locked --force
-draupnir --version
-```
+To review the installer before running it, download `install.sh`, inspect it, then run it with `bash`. You can also download an archive from [GitHub Releases](https://github.com/BrokkAi/draupnir/releases/latest).
 
 Running `draupnir` directly starts a stdio JSON-RPC server; use it through an ACP client. Continue with the [installation guide](https://draupnir.brokk.ai/install/) or the reproducible [ten-minute evaluation](https://draupnir.brokk.ai/evaluate-draupnir/).
 

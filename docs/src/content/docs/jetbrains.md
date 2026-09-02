@@ -44,7 +44,7 @@ rustup target add wasm32-wasip2
 cargo xtask build-acp-for-jetbrains
 ```
 
-The helper builds `target/release/draupnir` and writes a `Brokk Code (Rust Local)` entry. Pass `--config <path>` when the active JetBrains ACP configuration is elsewhere. The helper is development tooling and is not packaged by `cargo install`.
+The helper builds `target/release/draupnir` and writes a `Brokk Code (Rust Local)` entry. Pass `--config <path>` when the active JetBrains ACP configuration is elsewhere. The helper is development tooling and is not included in release archives.
 
 ## Setup and Validation
 
