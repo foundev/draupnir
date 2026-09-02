@@ -81,7 +81,7 @@ The script accepts these environment variables:
 | --- | --- |
 | `INSTALL_DIR` | Install directory. Defaults to `~/.local/bin`. |
 | `DRAUPNIR_INSTALL_DIR` | Same as `INSTALL_DIR`, with higher precedence. |
-| `DRAUPNIR_VERSION` | Release tag to install, for example `v0.28.0`. Defaults to the latest release. |
+| `DRAUPNIR_VERSION` | Release tag to install, for example `v0.28.1`. Defaults to the latest release. |
 | `DRAUPNIR_GITHUB_OWNER` | GitHub owner to download from. Defaults to `foundev`. |
 | `GITHUB_TOKEN` | Token used for GitHub API rate limits. |
 | `PROFILE` | Shell profile to update when the install directory is not on `PATH`. |
@@ -89,7 +89,7 @@ The script accepts these environment variables:
 Pin a version and choose the directory like this:
 
 ```bash
-DRAUPNIR_VERSION=v0.28.0 INSTALL_DIR=/usr/local/bin \
+DRAUPNIR_VERSION=v0.28.1 INSTALL_DIR=/usr/local/bin \
   bash -c "$(curl -fsSL https://raw.githubusercontent.com/foundev/draupnir/refs/heads/master/install.sh)"
 ```
 

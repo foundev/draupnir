@@ -46,7 +46,7 @@ Environment:
   INSTALL_DIR             Install directory. Defaults to ~/.local/bin.
   DRAUPNIR_INSTALL_DIR     Same as INSTALL_DIR, with higher precedence.
   DRAUPNIR_GITHUB_OWNER    GitHub owner to download from. Defaults to foundev.
-  DRAUPNIR_VERSION         Optional release tag to install, for example v0.28.0.
+  DRAUPNIR_VERSION         Optional release tag to install, for example v0.28.1.
   GITHUB_TOKEN             Optional token for GitHub API rate limits.
   PROFILE                  Optional shell profile to update when INSTALL_DIR is not on PATH.
 EOF

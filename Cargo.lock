@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "brokk-draupnir"
-version = "0.28.0"
+version = "0.28.1"
 dependencies = [
  "agent-client-protocol",
  "anyhow",
@@ -539,7 +539,7 @@ dependencies = [
 
 [[package]]
 name = "brokk-draupnir-minimizer"
-version = "0.28.0"
+version = "0.28.1"
 dependencies = [
  "brush-parser",
  "parking_lot",
