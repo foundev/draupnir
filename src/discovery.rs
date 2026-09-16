@@ -5,6 +5,8 @@
 //! and OpenRouter (`https://openrouter.ai/api/v1/models`, gated on the
 //! `OPENROUTER_API_KEY` env var), and hosted DeepSeek
 //! (`https://api.deepseek.com/v1/models`, gated on `DEEPSEEK_API_KEY`).
+//! Meta/Muse models are discovered through Meta's native API when a Muse
+//! Code login is present.
 //!
 //! Zero-config by design: the Ollama URL is fixed at the daemon's default
 //! port. If your daemon listens elsewhere, the catalog will simply not
@@ -28,7 +30,7 @@
 //! (`MultiBackend`) can pick the right HTTP client at request time. The
 //! catalog is presented to ACP clients as `<source>::<id>` wire ids, e.g.
 //! `codex::gpt-5-codex`, `ollama::llama3:latest`, `deepseek::deepseek-v4-pro`,
-//! `kimi::k3`, `openai::deca/model-id`, and
+//! `meta::muse-spark-1.3`, `kimi::k3`, `openai::deca/model-id`, and
 //! `openrouter::anthropic/claude-3.5-sonnet`. The double-colon separator
 //! avoids collision with Ollama tags (`model:tag`) and with OpenRouter
 //! ids (`vendor/model`).
@@ -53,6 +55,7 @@ pub struct ModelSource;
 
 impl ModelSource {
     pub const CODEX: &'static str = "codex";
+    pub const META: &'static str = "meta";
     pub const DEEPSEEK: &'static str = "deepseek";
     pub const DS4: &'static str = "ds4";
     pub const GROK: &'static str = "grok";

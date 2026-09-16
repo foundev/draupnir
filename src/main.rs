@@ -29,6 +29,7 @@ mod kimi_auth;
 mod llm_client;
 mod lsp;
 mod mcp;
+mod meta_client;
 mod multi_backend;
 mod openai_providers;
 mod openrouter_auth;
@@ -649,6 +650,13 @@ async fn build_multi_backend() -> Result<Arc<MultiBackend>> {
     secrets::migrate_legacy_files();
 
     let codex_backend = build_codex_backend().await;
+    let meta_backend = match meta_client::MetaClient::load() {
+        Ok(backend) => backend,
+        Err(error) => {
+            tracing::info!("Meta backend unavailable: {error}");
+            None
+        }
+    };
     let deepseek_backend = build_deepseek_backend();
     let kimi_backend = build_kimi_backend();
     let grok_backend = build_grok_backend();
@@ -695,6 +703,7 @@ async fn build_multi_backend() -> Result<Arc<MultiBackend>> {
 
     Ok(Arc::new(MultiBackend::new(vec![
         BackendRegistration::new(discovery::ModelSource::CODEX, "Codex", codex_backend),
+        BackendRegistration::new(discovery::ModelSource::META, "Meta (Muse)", meta_backend),
         BackendRegistration::new(
             discovery::ModelSource::OLLAMA,
             "Local models",

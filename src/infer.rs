@@ -21,13 +21,14 @@ use crate::structured_output::{
 };
 
 const CODEX_MODEL_PREFIX: &str = "codex::";
+const META_MODEL_PREFIX: &str = "meta::";
 const KIMI_MODEL_PREFIX: &str = "kimi::";
 const GROK_MODEL_PREFIX: &str = "grok::";
 const DEEPSEEK_MODEL_PREFIX: &str = "deepseek::";
 
 #[derive(Args, Debug)]
 pub(crate) struct InferArgs {
-    /// Provider-qualified wire model id (codex::, kimi::, grok::, or deepseek::).
+    /// Provider-qualified wire model id (codex::, meta::, kimi::, grok::, or deepseek::).
     #[arg(long)]
     model: String,
 
@@ -109,6 +110,14 @@ pub(crate) async fn run(args: &InferArgs) -> Result<()> {
             bail!("--model must name a model after the codex:: prefix");
         }
         (Arc::new(CodexClient::new()), model.to_string())
+    } else if let Some(model) = args.model.strip_prefix(META_MODEL_PREFIX) {
+        if model.trim().is_empty() {
+            bail!("--model must name a model after the meta:: prefix");
+        }
+        let backend = crate::meta_client::MetaClient::load()?.ok_or_else(|| {
+            anyhow::anyhow!("Meta backend is not configured; sign in with `muse login`")
+        })?;
+        (backend, model.to_string())
     } else if let Some(model) = args.model.strip_prefix(KIMI_MODEL_PREFIX) {
         if model.trim().is_empty() {
             bail!("--model must name a model after the kimi:: prefix");
@@ -141,7 +150,7 @@ pub(crate) async fn run(args: &InferArgs) -> Result<()> {
         (backend, model.to_string())
     } else {
         bail!(
-            "--model must use a codex::<model-id>, kimi::<model-id>, grok::<model-id>, or deepseek::<model-id> wire form"
+            "--model must use a codex::<model-id>, meta::<model-id>, kimi::<model-id>, grok::<model-id>, or deepseek::<model-id> wire form"
         );
     };
 
