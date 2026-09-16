@@ -131,7 +131,11 @@ jobs:
         targets: aarch64-linux-android,wasm32-wasip2
 
     - name: Install Android SDK + NDK
-      uses: android-actions/setup-android@v3
+      uses: android-actions/setup-android@v4
+      with:
+        # Google removed the legacy `tools` repository package. The hosted
+        # runner already has cmdline-tools; install only the NDK below.
+        packages: ''
 
     - name: Install Android NDK
       shell: bash
