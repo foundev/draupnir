@@ -51,6 +51,11 @@ On macOS and Linux, a running `ds4-server` is discovered from its listening port
 ## Hosted DeepSeek and Kimi Code
 
 DeepSeek uses `DEEPSEEK_API_KEY` or credentials saved through `/setup deepseek`. Models use `deepseek::*` wire IDs.
+Tool-free `draupnir infer` calls use DeepSeek's stateless Responses API with a
+native JSON Schema request; normal agent chat continues to use Chat
+Completions. DeepSeek can still violate the requested schema, so Draupnir
+validates locally and rejects truncated responses even when their partial text
+happens to be valid JSON.
 
 Kimi Code uses `KIMI_API_KEY` or the OAuth credentials created by `kimi login`. Set `KIMI_CODE_BASE_URL` to override the default coding endpoint. Kimi models use `kimi::*` IDs.
 

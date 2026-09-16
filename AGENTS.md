@@ -17,6 +17,10 @@ Prerequisite: `rustup target add wasm32-wasip2` (needed by `build.rs` when the d
 
 - **Logging goes to stderr only.** stdout is reserved for JSON-RPC. Use `tracing::info!`/`warn!`/`debug!`; default filter is `info`, overridable via `RUST_LOG`.
 - **Wire IDs.** Models are tagged `<source>::<id>` (e.g. `codex::gpt-5-codex`, `ollama::llama3:latest`). The double-colon avoids collisions with Ollama tags (`:`) and OpenRouter ids (`/`). Parse with `split_wire_id`.
+- **DeepSeek structured inference** uses the stateless Responses backend only for
+  `draupnir infer`; agent chat keeps its Chat Completions backend. Native schema
+  requests must not prepend schema text ahead of caller messages, incomplete
+  Responses output must be rejected, and local validation remains authoritative.
 - **Error handling.** `anyhow::Result` throughout. Discovery failures (dead Ollama, missing auth.json) are logged and treated as "no models from this source" — never fatal.
 - **`block_task()`** (ACP `send_request`) must only be called inside `cx.spawn()` — never from a request handler. `SpawnedCx<'_>` encodes this requirement.
 - **Session zip reads/writes** all route through `SandboxBackend` to prevent untrusted archives from OOM-ing or panicking the host. Writes use atomic temp-then-rename.

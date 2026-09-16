@@ -332,6 +332,9 @@ enum OutputItemContent {
 #[derive(Debug)]
 pub(crate) struct ResponsesStreamOutcome {
     pub(crate) response: LlmResponse,
+    /// True when the provider reported an incomplete response. Structured
+    /// callers must reject such output even if the partial text is valid.
+    pub(crate) incomplete: bool,
 }
 
 pub(crate) async fn drive_responses_sse_stream<S>(
@@ -350,6 +353,7 @@ where
     let mut deadline = tokio::time::Instant::now() + idle.first_progress;
     let mut saw_progress = false;
     let mut completed = false;
+    let mut incomplete = false;
     let mut failure: Option<anyhow::Error> = None;
     let mut usage = TokenUsage::default();
     let mut deltas_received = false;
@@ -524,6 +528,7 @@ where
                             break;
                         }
                         "response.incomplete" => {
+                            incomplete = true;
                             crate::llm_client::flush_pending_thought(
                                 &mut pending_thought,
                                 &mut on_thought,
@@ -611,6 +616,7 @@ where
                 usage,
                 codex_reasoning: None,
             },
+            incomplete,
         });
     }
     if !completed {
@@ -631,6 +637,7 @@ where
                 usage,
                 codex_reasoning: None,
             },
+            incomplete,
         })
     } else {
         Ok(ResponsesStreamOutcome {
@@ -641,6 +648,7 @@ where
                 usage,
                 codex_reasoning: None,
             },
+            incomplete,
         })
     }
 }

@@ -14,6 +14,7 @@ mod codex_credits;
 mod context_manager;
 mod deepseek_auth;
 mod deepseek_balance;
+mod deepseek_responses_client;
 mod discovery;
 mod goal;
 mod grok_auth;

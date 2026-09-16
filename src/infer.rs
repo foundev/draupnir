@@ -142,7 +142,8 @@ pub(crate) async fn run(args: &InferArgs) -> Result<()> {
         if model.trim().is_empty() {
             bail!("--model must name a model after the deepseek:: prefix");
         }
-        let backend = crate::build_deepseek_backend().ok_or_else(|| {
+        let backend =
+            crate::deepseek_responses_client::DeepSeekClient::load()?.ok_or_else(|| {
                 anyhow::anyhow!(
                     "DeepSeek backend is not configured; set DEEPSEEK_API_KEY or run `/setup deepseek key <key>`"
                 )
