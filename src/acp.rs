@@ -31,7 +31,6 @@ use agent_client_protocol::schema::v1::{
     ElicitationContentValue,
     ElicitationFormMode,
     ElicitationId,
-    ElicitationPropertySchema,
     ElicitationSchema,
     ElicitationSessionScope,
     ElicitationUrlMode,
@@ -49,7 +48,6 @@ use agent_client_protocol::schema::v1::{
     McpCapabilities,
     NewSessionRequest,
     NewSessionResponse,
-    OtherElicitationPropertySchema,
     PromptCapabilities,
     PromptRequest,
     PromptResponse,
@@ -1546,42 +1544,18 @@ fn render_setup_home_from_snapshot(snap: &SessionSnapshot, catalog: &[ModelMetad
     out
 }
 
-/// Live per-provider readiness, computed from the model catalog and the
-/// credential stores. Plain data so every setup surface (Markdown home,
-/// elicitation home menu) renders the same statuses without duplicating the
-/// rules.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-struct SetupProviderStatus {
-    codex: Option<String>,
-    local: Option<String>,
-    deepseek: Option<String>,
-    inceptron: Option<String>,
-    grok: Option<String>,
-    openrouter: Option<String>,
-}
-
-impl SetupProviderStatus {
-    fn for_route(&self, route: SetupHomeRoute) -> Option<&str> {
-        match route {
-            SetupHomeRoute::Codex => self.codex.as_deref(),
-            SetupHomeRoute::Local => self.local.as_deref(),
-            SetupHomeRoute::DeepSeek => self.deepseek.as_deref(),
-            SetupHomeRoute::Inceptron => self.inceptron.as_deref(),
-            SetupHomeRoute::Grok => self.grok.as_deref(),
-            SetupHomeRoute::OpenRouter => self.openrouter.as_deref(),
-            SetupHomeRoute::Choose
-            | SetupHomeRoute::Models
-            | SetupHomeRoute::Lsp
-            | SetupHomeRoute::Recap
-            | SetupHomeRoute::Advanced => None,
-        }
-    }
-}
-
-/// Whether usable Codex credentials exist (`~/.codex/auth.json` with tokens or
-/// an API key), regardless of whether the catalog has been refreshed yet.
-fn codex_credentials_present() -> bool {
-    crate::codex_auth::read_auth_dot_json()
+fn render_setup_home_for_model(model: &str, catalog: &[ModelMetadata]) -> String {
+    let codex_count = source_count(catalog, ModelSource::CODEX);
+    let local_count =
+        source_count(catalog, ModelSource::OLLAMA) + source_count(catalog, ModelSource::DS4);
+    let deepseek_count = source_count(catalog, ModelSource::DEEPSEEK);
+    let grok_count = source_count(catalog, ModelSource::GROK);
+    let openrouter_count = source_count(catalog, ModelSource::OPENROUTER);
+    let openrouter_state = crate::openrouter_auth::CredentialState::snapshot();
+    let deepseek_state = crate::deepseek_auth::CredentialState::snapshot();
+    let inceptron_count = source_count(catalog, ModelSource::INCEPTRON);
+    let inceptron_state = crate::inceptron_auth::CredentialState::snapshot();
+    let codex_connected = crate::codex_auth::read_auth_dot_json()
         .ok()
         .flatten()
         .is_some_and(|auth| {
@@ -1590,59 +1564,8 @@ fn codex_credentials_present() -> bool {
                     .openai_api_key
                     .as_deref()
                     .is_some_and(|key| !key.trim().is_empty())
-        })
-}
-
-fn keyed_provider_status(count: usize, active_source: &str) -> Option<String> {
-    if count > 0 {
-        Some("ready".to_string())
-    } else if active_source == "none" {
-        Some("not connected".to_string())
-    } else {
-        Some("connected, no models found yet".to_string())
-    }
-}
-
-fn setup_provider_status(catalog: &[ModelMetadata]) -> SetupProviderStatus {
-    let codex_count = source_count(catalog, ModelSource::CODEX);
-    let local_count =
-        source_count(catalog, ModelSource::OLLAMA) + source_count(catalog, ModelSource::DS4);
-    let deepseek_count = source_count(catalog, ModelSource::DEEPSEEK);
-    let deepseek_state = crate::deepseek_auth::CredentialState::snapshot();
-    let inceptron_count = source_count(catalog, ModelSource::INCEPTRON);
-    let inceptron_state = crate::inceptron_auth::CredentialState::snapshot();
-    let grok_count = source_count(catalog, ModelSource::GROK);
+        });
     let grok_connected = matches!(crate::grok_client::GrokClient::load(), Ok(Some(_)));
-    let openrouter_count = source_count(catalog, ModelSource::OPENROUTER);
-    let openrouter_state = crate::openrouter_auth::CredentialState::snapshot();
-    SetupProviderStatus {
-        codex: if codex_count > 0 {
-            Some("ready".to_string())
-        } else if codex_credentials_present() {
-            Some("connected, no models found yet".to_string())
-        } else {
-            Some("not signed in".to_string())
-        },
-        local: if local_count > 0 {
-            Some("ready".to_string())
-        } else {
-            Some("not found".to_string())
-        },
-        deepseek: keyed_provider_status(deepseek_count, deepseek_state.active_source()),
-        inceptron: keyed_provider_status(inceptron_count, inceptron_state.active_source()),
-        grok: if grok_count > 0 {
-            Some("ready".to_string())
-        } else if grok_connected {
-            Some("credential file found, no models found yet".to_string())
-        } else {
-            Some("not signed in".to_string())
-        },
-        openrouter: keyed_provider_status(openrouter_count, openrouter_state.active_source()),
-    }
-}
-
-fn render_setup_home_for_model(model: &str, catalog: &[ModelMetadata]) -> String {
-    let status = setup_provider_status(catalog);
     let choices = SetupHomeRoute::menu()
         .into_iter()
         .map(SetupHomeRoute::markdown_line)
@@ -1666,12 +1589,46 @@ fn render_setup_home_for_model(model: &str, catalog: &[ModelMetadata]) -> String
          - Grok: {grok_status}\n\
          - OpenRouter: {openrouter_status}\n\n\
          You can run `/setup` anytime.",
-        codex_status = status.codex.as_deref().unwrap_or_default(),
-        local_status = status.local.as_deref().unwrap_or_default(),
-        deepseek_status = status.deepseek.as_deref().unwrap_or_default(),
-        inceptron_status = status.inceptron.as_deref().unwrap_or_default(),
-        grok_status = status.grok.as_deref().unwrap_or_default(),
-        openrouter_status = status.openrouter.as_deref().unwrap_or_default(),
+        codex_status = if codex_count > 0 {
+            "ready".to_string()
+        } else if codex_connected {
+            "connected, no models found yet".to_string()
+        } else {
+            "not signed in".to_string()
+        },
+        local_status = if local_count > 0 {
+            "ready".to_string()
+        } else {
+            "not found".to_string()
+        },
+        deepseek_status = if deepseek_count > 0 {
+            "ready".to_string()
+        } else if deepseek_state.active_source() == "none" {
+            "not connected".to_string()
+        } else {
+            "connected, no models found yet".to_string()
+        },
+        inceptron_status = if inceptron_count > 0 {
+            "ready".to_string()
+        } else if inceptron_state.active_source() == "none" {
+            "not connected".to_string()
+        } else {
+            "connected, no models found yet".to_string()
+        },
+        grok_status = if grok_count > 0 {
+            "ready".to_string()
+        } else if grok_connected {
+            "credential file found, no models found yet".to_string()
+        } else {
+            "not signed in".to_string()
+        },
+        openrouter_status = if openrouter_count > 0 {
+            "ready".to_string()
+        } else if openrouter_state.active_source() == "none" {
+            "not connected".to_string()
+        } else {
+            "connected, no models found yet".to_string()
+        },
     )
 }
 
@@ -6860,9 +6817,6 @@ enum SetupElicitTarget {
     /// point: each choice routes into the relevant sub-flow below (or a text
     /// handler), so users navigate setup from one prompt.
     Home,
-    /// `/setup model` with no explicit value -> interactive provider/model
-    /// picker over the refreshed catalog.
-    Models,
     /// `/setup sandbox` with no explicit value -> single-select form menu.
     Sandbox,
     /// `/setup codex` (or `/setup codex login`) -> form-mode auth-method menu.
@@ -6881,8 +6835,6 @@ impl SetupElicitTarget {
         match self {
             // The home menu is a form-mode (single-select) elicitation.
             Self::Home => caps.form,
-            // The model picker is a chain of form-mode (menu) elicitations.
-            Self::Models => caps.form,
             // Sandbox is a form-mode (menu) elicitation.
             Self::Sandbox => caps.form,
             // Good clients get a form menu to choose browser vs device auth,
@@ -6915,9 +6867,6 @@ fn setup_elicitation_target(prompt_text: &str) -> Option<SetupElicitTarget> {
     match sub.as_str() {
         // Bare `/setup` (no sub-command) -> the single interactive entry point.
         "" => Some(SetupElicitTarget::Home),
-        // Bare `/setup model` opens the interactive catalog picker; an
-        // explicit model id keeps the text flow.
-        "model" if rest.is_empty() => Some(SetupElicitTarget::Models),
         "sandbox" if rest.is_empty() => Some(SetupElicitTarget::Sandbox),
         // Bare `/setup codex` / `/setup codex login` open a method menu;
         // explicit methods and status/disconnect keep the text flow.
@@ -6947,9 +6896,6 @@ async fn run_setup_elicitation(
         SetupElicitTarget::Home => {
             run_setup_home_elicitation(spawned_cx, sessions, session_id, llm, refresh_lock, cancel)
                 .await;
-        }
-        SetupElicitTarget::Models => {
-            run_setup_models_elicitation(spawned_cx, sessions, session_id, cancel).await;
         }
         SetupElicitTarget::Sandbox => {
             run_setup_sandbox_elicitation(spawned_cx, sessions, session_id, cancel).await;
@@ -7023,53 +6969,6 @@ async fn run_setup_codex_login_elicitation(
     cancel: &tokio_util::sync::CancellationToken,
 ) {
     let cx = spawned_cx.cx();
-
-    // Already signed in: offer management (sign in again / disconnect) before
-    // jumping into a fresh OAuth flow.
-    if codex_credentials_present() {
-        match request_provider_action(
-            cx,
-            cancel,
-            session_id,
-            "Codex",
-            &[ProviderAction::SignIn, ProviderAction::Disconnect],
-        )
-        .await
-        {
-            Ok(Some(ProviderAction::Disconnect)) => {
-                let message = handle_setup_codex(
-                    "disconnect",
-                    llm,
-                    sessions,
-                    refresh_lock,
-                    cx,
-                    session_id,
-                    None,
-                )
-                .await;
-                send_message(cx, session_id, &message);
-                return;
-            }
-            Ok(Some(_)) => {}
-            Ok(None) => {
-                send_message(
-                    cx,
-                    session_id,
-                    "Codex setup cancelled; credentials are unchanged.",
-                );
-                return;
-            }
-            Err(e) => {
-                tracing::warn!("/setup codex action menu failed: {e}");
-                send_message(
-                    cx,
-                    session_id,
-                    "Setup could not show the Codex menu; credentials are unchanged.",
-                );
-                return;
-            }
-        }
-    }
 
     let method = match request_codex_login_method(cx, session_id, cancel).await {
         Ok(Some(method)) => method,
@@ -7173,11 +7072,22 @@ async fn request_codex_login_method(
 }
 
 fn parse_codex_login_method(action: &ElicitationAction) -> Option<CodexLoginMethod> {
-    match parse_elicitation_string_field(action, "method")?.as_str() {
-        "browser" => Some(CodexLoginMethod::Browser),
-        "device" => Some(CodexLoginMethod::Device),
-        _ => None,
-    }
+    let ElicitationAction::Accept(accept) = action else {
+        return None;
+    };
+    accept
+        .content
+        .as_ref()
+        .and_then(|content| content.get("method"))
+        .and_then(|value| match value {
+            ElicitationContentValue::String(s) => Some(s.as_str()),
+            _ => None,
+        })
+        .and_then(|method| match method {
+            "browser" => Some(CodexLoginMethod::Browser),
+            "device" => Some(CodexLoginMethod::Device),
+            _ => None,
+        })
 }
 
 fn build_codex_login_method_elicitation_request(session_id: &str) -> CreateElicitationRequest {
@@ -7261,61 +7171,6 @@ async fn run_setup_openrouter_login_elicitation(
         return;
     }
 
-    if crate::openrouter_auth::CredentialState::snapshot().active_source() == "file" {
-        match request_provider_action(
-            cx,
-            cancel,
-            session_id,
-            "OpenRouter",
-            &[
-                ProviderAction::SignIn,
-                ProviderAction::Disconnect,
-                ProviderAction::Refresh,
-            ],
-        )
-        .await
-        {
-            Ok(Some(ProviderAction::Disconnect)) => {
-                let message = handle_setup_openrouter(
-                    cx,
-                    session_id,
-                    "disconnect",
-                    llm,
-                    sessions,
-                    refresh_lock,
-                )
-                .await;
-                send_message(cx, session_id, &message);
-                return;
-            }
-            Ok(Some(ProviderAction::Refresh)) => {
-                let message =
-                    handle_setup_openrouter(cx, session_id, "refresh", llm, sessions, refresh_lock)
-                        .await;
-                send_message(cx, session_id, &message);
-                return;
-            }
-            Ok(Some(_)) => {}
-            Ok(None) => {
-                send_message(
-                    cx,
-                    session_id,
-                    "OpenRouter setup cancelled; credentials are unchanged.",
-                );
-                return;
-            }
-            Err(e) => {
-                tracing::warn!("/setup openrouter action menu failed: {e}");
-                send_message(
-                    cx,
-                    session_id,
-                    "Setup could not show the OpenRouter menu; credentials are unchanged.",
-                );
-                return;
-            }
-        }
-    }
-
     let request = build_openrouter_key_elicitation_request(session_id);
     let response = tokio::select! {
         biased;
@@ -7372,11 +7227,9 @@ fn build_openrouter_key_elicitation_request(session_id: &str) -> CreateElicitati
         .title("OpenRouter API key")
         .description("Paste your key from https://openrouter.ai/keys.")
         .min_length(1u32);
-    let schema = ElicitationSchema::new().title("OpenRouter").property(
-        "key",
-        password_masked_string_field(field),
-        true,
-    );
+    let schema = ElicitationSchema::new()
+        .title("OpenRouter")
+        .property("key", field, true);
     let mode =
         ElicitationFormMode::new(ElicitationSessionScope::new(session_id.to_string()), schema);
     CreateElicitationRequest::new(mode, "Enter your OpenRouter API key")
@@ -7394,7 +7247,7 @@ fn build_provider_secret_elicitation_request(
         .min_length(1u32);
     let schema = ElicitationSchema::new()
         .title(format!("{provider} setup"))
-        .property("key", password_masked_string_field(field), true);
+        .property("key", field, true);
     let mode =
         ElicitationFormMode::new(ElicitationSessionScope::new(session_id.to_string()), schema);
     CreateElicitationRequest::new(mode, format!("Enter your {provider} credential"))
@@ -7427,127 +7280,6 @@ async fn request_setup_secret(
     }
 }
 
-/// Read a single string field out of an accepted elicitation response.
-/// Returns `None` for Decline/Cancel, missing content, a non-string value,
-/// or an empty string -- all treated as "dismissed, nothing chosen".
-fn parse_elicitation_string_field(action: &ElicitationAction, field: &str) -> Option<String> {
-    let ElicitationAction::Accept(accept) = action else {
-        return None;
-    };
-    accept
-        .content
-        .as_ref()?
-        .get(field)
-        .and_then(|value| match value {
-            ElicitationContentValue::String(s) => Some(s.clone()),
-            _ => None,
-        })
-        .filter(|s| !s.is_empty())
-}
-
-/// Wrap a string property so it serializes with `format: "password"`, which
-/// elicitation-capable clients render as a masked single-line input. The typed
-/// v1 `StringFormat` enum predates the password convention, so the property
-/// travels through the schema's forward-compatible `Other` payload, which
-/// preserves the `string` discriminator and all fields verbatim.
-fn password_masked_string_field(field: StringPropertySchema) -> ElicitationPropertySchema {
-    let value = serde_json::to_value(&field).expect("string property schema serializes");
-    let mut fields = match value {
-        serde_json::Value::Object(map) => map.into_iter().collect::<BTreeMap<_, _>>(),
-        other => unreachable!("string property schema serializes to an object, got {other}"),
-    };
-    fields.insert(
-        "format".to_string(),
-        serde_json::Value::String("password".to_string()),
-    );
-    ElicitationPropertySchema::Other(OtherElicitationPropertySchema::new("string", fields))
-}
-
-/// An action chosen from a connected provider's management menu (`/setup
-/// <provider>` on a client that supports forms).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ProviderAction {
-    /// Re-enter credentials / sign in again.
-    SignIn,
-    /// Clear stored credentials and unload the in-memory backend.
-    Disconnect,
-    /// Re-run discovery for this provider's model catalog.
-    Refresh,
-}
-
-impl ProviderAction {
-    fn value(self) -> &'static str {
-        match self {
-            Self::SignIn => "signin",
-            Self::Disconnect => "disconnect",
-            Self::Refresh => "refresh",
-        }
-    }
-
-    fn from_value(value: &str) -> Option<Self> {
-        match value {
-            "signin" | "replace" => Some(Self::SignIn),
-            "disconnect" => Some(Self::Disconnect),
-            "refresh" => Some(Self::Refresh),
-            _ => None,
-        }
-    }
-
-    fn label(self) -> &'static str {
-        match self {
-            Self::SignIn => "Connect / sign in again",
-            Self::Disconnect => "Disconnect and clear saved credentials",
-            Self::Refresh => "Refresh the model catalog",
-        }
-    }
-}
-
-fn parse_provider_action_choice(action: &ElicitationAction) -> Option<ProviderAction> {
-    parse_elicitation_string_field(action, "action").and_then(|v| ProviderAction::from_value(&v))
-}
-
-/// Build the management menu shown for an already-connected provider.
-fn build_provider_action_elicitation_request(
-    session_id: &str,
-    provider: &str,
-    options: &[ProviderAction],
-) -> CreateElicitationRequest {
-    let field = StringPropertySchema::new()
-        .title(format!("{provider} is connected"))
-        .description("What would you like to do?")
-        .one_of(
-            options
-                .iter()
-                .map(|action| EnumOption::new(action.value(), action.label()))
-                .collect::<Vec<_>>(),
-        );
-    let schema = ElicitationSchema::new()
-        .title(format!("{provider} setup"))
-        .property("action", field, true);
-    let mode =
-        ElicitationFormMode::new(ElicitationSessionScope::new(session_id.to_string()), schema);
-    CreateElicitationRequest::new(mode, format!("Manage {provider}"))
-}
-
-/// Show the management menu for a connected provider. `Ok(None)` means the
-/// user dismissed the menu (or cancelled); `Err` means it could not be shown.
-async fn request_provider_action(
-    cx: &ConnectionTo<Client>,
-    cancel: &tokio_util::sync::CancellationToken,
-    session_id: &str,
-    provider: &str,
-    options: &[ProviderAction],
-) -> anyhow::Result<Option<ProviderAction>> {
-    let request = build_provider_action_elicitation_request(session_id, provider, options);
-    let response = tokio::select! {
-        biased;
-        _ = cancel.cancelled() => return Ok(None),
-        response = cx.send_request(request).block_task() => response,
-    }
-    .map_err(|e| anyhow::anyhow!("could not show the {provider} menu: {e}"))?;
-    Ok(parse_provider_action_choice(&response.action))
-}
-
 async fn run_setup_deepseek_login_elicitation(
     spawned_cx: &crate::tool_loop::SpawnedCx<'_>,
     sessions: &SessionStore,
@@ -7557,64 +7289,9 @@ async fn run_setup_deepseek_login_elicitation(
     cancel: &tokio_util::sync::CancellationToken,
 ) {
     let cx = spawned_cx.cx();
-    let deepseek_state = crate::deepseek_auth::CredentialState::snapshot();
-    if deepseek_state.env_owns() {
+    if crate::deepseek_auth::CredentialState::snapshot().env_owns() {
         send_message(cx, session_id, &render_deepseek_setup_help());
         return;
-    }
-    if deepseek_state.active_source() == "file" {
-        match request_provider_action(
-            cx,
-            cancel,
-            session_id,
-            "DeepSeek",
-            &[
-                ProviderAction::SignIn,
-                ProviderAction::Disconnect,
-                ProviderAction::Refresh,
-            ],
-        )
-        .await
-        {
-            Ok(Some(ProviderAction::Disconnect)) => {
-                let message = handle_setup_deepseek(
-                    cx,
-                    sessions,
-                    session_id,
-                    llm,
-                    refresh_lock,
-                    "disconnect",
-                )
-                .await;
-                send_message(cx, session_id, &message);
-                return;
-            }
-            Ok(Some(ProviderAction::Refresh)) => {
-                let message =
-                    handle_setup_deepseek(cx, sessions, session_id, llm, refresh_lock, "refresh")
-                        .await;
-                send_message(cx, session_id, &message);
-                return;
-            }
-            Ok(Some(_)) => {}
-            Ok(None) => {
-                send_message(
-                    cx,
-                    session_id,
-                    "DeepSeek setup cancelled; credentials are unchanged.",
-                );
-                return;
-            }
-            Err(e) => {
-                tracing::warn!("/setup deepseek action menu failed: {e}");
-                send_message(
-                    cx,
-                    session_id,
-                    "Setup could not show the DeepSeek menu; credentials are unchanged.",
-                );
-                return;
-            }
-        }
     }
     let request = build_provider_secret_elicitation_request(
         session_id,
@@ -7653,64 +7330,9 @@ async fn run_setup_inceptron_login_elicitation(
     cancel: &tokio_util::sync::CancellationToken,
 ) {
     let cx = spawned_cx.cx();
-    let inceptron_state = crate::inceptron_auth::CredentialState::snapshot();
-    if inceptron_state.env_owns() {
+    if crate::inceptron_auth::CredentialState::snapshot().env_owns() {
         send_message(cx, session_id, &render_inceptron_setup_help());
         return;
-    }
-    if inceptron_state.active_source() == "file" {
-        match request_provider_action(
-            cx,
-            cancel,
-            session_id,
-            "Inceptron",
-            &[
-                ProviderAction::SignIn,
-                ProviderAction::Disconnect,
-                ProviderAction::Refresh,
-            ],
-        )
-        .await
-        {
-            Ok(Some(ProviderAction::Disconnect)) => {
-                let message = handle_setup_inceptron(
-                    cx,
-                    sessions,
-                    session_id,
-                    llm,
-                    refresh_lock,
-                    "disconnect",
-                )
-                .await;
-                send_message(cx, session_id, &message);
-                return;
-            }
-            Ok(Some(ProviderAction::Refresh)) => {
-                let message =
-                    handle_setup_inceptron(cx, sessions, session_id, llm, refresh_lock, "refresh")
-                        .await;
-                send_message(cx, session_id, &message);
-                return;
-            }
-            Ok(Some(_)) => {}
-            Ok(None) => {
-                send_message(
-                    cx,
-                    session_id,
-                    "Inceptron setup cancelled; credentials are unchanged.",
-                );
-                return;
-            }
-            Err(e) => {
-                tracing::warn!("/setup inceptron action menu failed: {e}");
-                send_message(
-                    cx,
-                    session_id,
-                    "Setup could not show the Inceptron menu; credentials are unchanged.",
-                );
-                return;
-            }
-        }
     }
     let request = build_provider_secret_elicitation_request(
         session_id,
@@ -7857,8 +7479,6 @@ async fn apply_sandbox_elicitation_outcome(
 enum SetupHomeRoute {
     /// Pick a ready model automatically (`/setup choose`).
     Choose,
-    /// Browse the refreshed catalog interactively (`/setup model`).
-    Models,
     /// Interactive Codex / ChatGPT sign-in (`/setup codex`).
     Codex,
     /// Local Ollama models (`/setup local`).
@@ -7884,7 +7504,6 @@ impl SetupHomeRoute {
     fn value(self) -> &'static str {
         match self {
             Self::Choose => "choose",
-            Self::Models => "models",
             Self::Codex => "codex",
             Self::Local => "local",
             Self::DeepSeek => "deepseek",
@@ -7908,7 +7527,6 @@ impl SetupHomeRoute {
     fn label(self) -> &'static str {
         match self {
             Self::Choose => "Choose a model for me",
-            Self::Models => "Browse models from connected providers",
             Self::Codex => "Sign in to Codex / ChatGPT",
             Self::Local => "Use local models (Ollama / ds4)",
             Self::DeepSeek => "Use hosted DeepSeek",
@@ -7929,7 +7547,7 @@ impl SetupHomeRoute {
             | Self::Inceptron
             | Self::Grok
             | Self::OpenRouter => "global provider",
-            Self::Choose | Self::Models => "current session",
+            Self::Choose => "current session",
             Self::Lsp | Self::Recap => "install default",
             Self::Advanced => "all scopes",
         }
@@ -7938,7 +7556,6 @@ impl SetupHomeRoute {
     fn command(self) -> &'static str {
         match self {
             Self::Choose => "/setup choose",
-            Self::Models => "/setup model",
             Self::Codex => "/setup codex",
             Self::Local => "/setup local",
             Self::DeepSeek => "/setup deepseek",
@@ -7965,12 +7582,10 @@ impl SetupHomeRoute {
     }
 
     /// The menu in display order. `choose` leads because it is the fastest path
-    /// to a working model; `models` follows for users who want to pick
-    /// explicitly.
-    fn menu() -> [Self; 11] {
+    /// to a working model.
+    fn menu() -> [Self; 10] {
         [
             Self::Choose,
-            Self::Models,
             Self::Codex,
             Self::Local,
             Self::DeepSeek,
@@ -7988,25 +7603,25 @@ impl SetupHomeRoute {
 /// `None` for Decline/Cancel, an empty/non-string selection, or an
 /// unrecognized value -- all of which are treated as "closed, nothing chosen".
 fn parse_setup_home_choice(action: &ElicitationAction) -> Option<SetupHomeRoute> {
-    parse_elicitation_string_field(action, "choice").and_then(|v| SetupHomeRoute::from_value(&v))
+    let ElicitationAction::Accept(accept) = action else {
+        return None;
+    };
+    accept
+        .content
+        .as_ref()
+        .and_then(|content| content.get("choice"))
+        .and_then(|value| match value {
+            ElicitationContentValue::String(s) => Some(s.as_str()),
+            _ => None,
+        })
+        .and_then(SetupHomeRoute::from_value)
 }
 
-/// Build the single-select home-menu form, pre-selecting `choose`. Provider
-/// routes carry their live status in the label so the menu doubles as a
-/// readiness overview (e.g. `Sign in to Codex / ChatGPT — not signed in`).
-fn build_setup_home_elicitation_request(
-    session_id: &str,
-    status: &SetupProviderStatus,
-) -> CreateElicitationRequest {
+/// Build the single-select home-menu form, pre-selecting `choose`.
+fn build_setup_home_elicitation_request(session_id: &str) -> CreateElicitationRequest {
     let options = SetupHomeRoute::menu()
         .into_iter()
-        .map(|route| {
-            let label = match status.for_route(route) {
-                Some(s) => format!("{} — {s}", route.menu_label()),
-                None => route.menu_label(),
-            };
-            EnumOption::new(route.value(), label)
-        })
+        .map(|route| EnumOption::new(route.value(), route.menu_label()))
         .collect::<Vec<_>>();
 
     let field = StringPropertySchema::new()
@@ -8038,9 +7653,7 @@ async fn run_setup_home_elicitation(
     cancel: &tokio_util::sync::CancellationToken,
 ) {
     let cx = spawned_cx.cx();
-    let catalog = sessions.available_model_metadata().await;
-    let status = setup_provider_status(&catalog);
-    let request = build_setup_home_elicitation_request(session_id, &status);
+    let request = build_setup_home_elicitation_request(session_id);
     let response = tokio::select! {
         biased;
         _ = cancel.cancelled() => return,
@@ -8065,9 +7678,6 @@ async fn run_setup_home_elicitation(
         Some(SetupHomeRoute::Choose) => {
             let message = handle_setup_choose(cx, sessions, session_id, llm, refresh_lock).await;
             send_message(cx, session_id, &message);
-        }
-        Some(SetupHomeRoute::Models) => {
-            run_setup_models_elicitation(spawned_cx, sessions, session_id, cancel).await;
         }
         Some(SetupHomeRoute::Local) => {
             let message = handle_setup_local(cx, sessions, session_id, llm, refresh_lock, "").await;
@@ -8137,224 +7747,6 @@ async fn run_setup_home_elicitation(
         }
         None => {
             send_message(cx, session_id, "Setup closed; nothing changed.");
-        }
-    }
-}
-
-/// Cap on how many models one provider contributes to the interactive picker,
-/// so a huge OpenRouter/Ollama catalog cannot turn the menu unusable.
-const MODEL_PICKER_CAP: usize = 40;
-
-/// Sources surfaced by the interactive model picker, in preference order.
-/// Sources with no models in the catalog are skipped at render time.
-const MODEL_PICKER_SOURCES: [&str; 9] = [
-    ModelSource::CODEX,
-    ModelSource::OLLAMA,
-    ModelSource::DS4,
-    ModelSource::DEEPSEEK,
-    ModelSource::INCEPTRON,
-    ModelSource::GROK,
-    ModelSource::KIMI,
-    ModelSource::OPENAI,
-    ModelSource::OPENROUTER,
-];
-
-/// Human-readable display name for a catalog source.
-fn model_source_display(source: &str) -> String {
-    match source {
-        ModelSource::CODEX => "Codex".to_string(),
-        ModelSource::OLLAMA => "Ollama".to_string(),
-        ModelSource::DS4 => "ds4 (DeepSeek V4)".to_string(),
-        ModelSource::DEEPSEEK => "DeepSeek".to_string(),
-        ModelSource::INCEPTRON => "Inceptron".to_string(),
-        ModelSource::GROK => "Grok".to_string(),
-        ModelSource::KIMI => "Kimi".to_string(),
-        ModelSource::OPENAI => "OpenAI".to_string(),
-        ModelSource::OPENROUTER => "OpenRouter".to_string(),
-        other => other.to_string(),
-    }
-}
-
-/// One menu option per source that currently has models, in preference order.
-fn model_picker_source_options(catalog: &[ModelMetadata]) -> Vec<EnumOption> {
-    MODEL_PICKER_SOURCES
-        .iter()
-        .filter_map(|source| {
-            let count = source_count(catalog, source);
-            if count == 0 {
-                return None;
-            }
-            Some(EnumOption::new(
-                (*source).to_string(),
-                format!("{} ({count} models)", model_source_display(source)),
-            ))
-        })
-        .collect()
-}
-
-/// The provider step of the picker, or `None` when the catalog is empty (the
-/// caller falls back to the Markdown page, which explains how to connect
-/// providers).
-fn build_model_source_menu_request(
-    session_id: &str,
-    catalog: &[ModelMetadata],
-) -> Option<CreateElicitationRequest> {
-    let options = model_picker_source_options(catalog);
-    if options.is_empty() {
-        return None;
-    }
-    let field = StringPropertySchema::new()
-        .title("Provider")
-        .description("Pick a provider to browse its models.")
-        .one_of(options);
-    let schema = ElicitationSchema::new()
-        .title("Pick a model")
-        .property("source", field, true);
-    let mode =
-        ElicitationFormMode::new(ElicitationSessionScope::new(session_id.to_string()), schema);
-    Some(CreateElicitationRequest::new(mode, "Which provider?"))
-}
-
-/// The models a provider contributes to the picker: everything for most
-/// sources (capped), the chat/coding filter for OpenRouter.
-fn model_picker_models<'a>(catalog: &'a [ModelMetadata], source: &str) -> Vec<&'a ModelMetadata> {
-    if source == ModelSource::OPENROUTER {
-        return filtered_openrouter_models(catalog)
-            .into_iter()
-            .filter_map(|id| catalog.iter().find(|m| m.id == id))
-            .collect();
-    }
-    catalog
-        .iter()
-        .filter(|m| split_wire_id(&m.id).is_some_and(|(s, _)| s == source))
-        .take(MODEL_PICKER_CAP)
-        .collect()
-}
-
-/// Picker label: bare model id plus the context window when the provider
-/// publishes one.
-fn model_picker_label(model: &ModelMetadata) -> String {
-    let bare = split_wire_id(&model.id)
-        .map(|(_, id)| id)
-        .unwrap_or(model.id.as_str());
-    match model.context_length {
-        Some(ctx) => format!("{bare} · {ctx} ctx"),
-        None => bare.to_string(),
-    }
-}
-
-fn build_model_pick_menu_request(
-    session_id: &str,
-    source: &str,
-    models: &[&ModelMetadata],
-) -> CreateElicitationRequest {
-    let options = models
-        .iter()
-        .map(|model| EnumOption::new(model.id.clone(), model_picker_label(model)))
-        .collect::<Vec<_>>();
-    let field = StringPropertySchema::new()
-        .title("Model")
-        .description(format!(
-            "Models from {}. Selecting applies to the current session.",
-            model_source_display(source)
-        ))
-        .one_of(options);
-    let schema = ElicitationSchema::new()
-        .title("Pick a model")
-        .property("model", field, true);
-    let mode =
-        ElicitationFormMode::new(ElicitationSessionScope::new(session_id.to_string()), schema);
-    CreateElicitationRequest::new(
-        mode,
-        format!("Pick a {} model", model_source_display(source)),
-    )
-}
-
-/// `/setup model` (or the home menu's "Browse models") as a two-step picker:
-/// choose a provider, then a model from that provider's catalog. The choice
-/// applies through the same `apply_config_option` path as `/setup model <id>`.
-/// With a single connected provider the first step is skipped. Decline/Cancel
-/// leave the session model unchanged.
-async fn run_setup_models_elicitation(
-    spawned_cx: &crate::tool_loop::SpawnedCx<'_>,
-    sessions: &SessionStore,
-    session_id: &str,
-    cancel: &tokio_util::sync::CancellationToken,
-) {
-    let cx = spawned_cx.cx();
-    let catalog = sessions.available_model_metadata().await;
-
-    let options = model_picker_source_options(&catalog);
-    if options.is_empty() {
-        send_message(cx, session_id, &render_setup_models(catalog.as_slice()));
-        return;
-    }
-
-    // Skip the provider step when only one source has models.
-    let source = if options.len() == 1 {
-        options[0].value.clone()
-    } else {
-        let Some(request) = build_model_source_menu_request(session_id, &catalog) else {
-            return;
-        };
-        let response = tokio::select! {
-            biased;
-            _ = cancel.cancelled() => return,
-            response = cx.send_request(request).block_task() => response,
-        };
-        match response {
-            Ok(resp) => match parse_elicitation_string_field(&resp.action, "source") {
-                Some(source) => source,
-                None => {
-                    send_message(
-                        cx,
-                        session_id,
-                        "Model picker closed; the model is unchanged.",
-                    );
-                    return;
-                }
-            },
-            Err(e) => {
-                tracing::warn!("/setup model provider menu failed: {e}");
-                send_message(cx, session_id, &render_setup_models(catalog.as_slice()));
-                return;
-            }
-        }
-    };
-
-    let models = model_picker_models(&catalog, &source);
-    if models.is_empty() {
-        send_message(cx, session_id, &render_setup_models(catalog.as_slice()));
-        return;
-    }
-    let request = build_model_pick_menu_request(session_id, &source, &models);
-    let response = tokio::select! {
-        biased;
-        _ = cancel.cancelled() => return,
-        response = cx.send_request(request).block_task() => response,
-    };
-    match response {
-        Ok(resp) => match parse_elicitation_string_field(&resp.action, "model") {
-            Some(id) => {
-                let message =
-                    apply_setup_config(cx, sessions, session_id, MODEL_CONFIG_ID, &id).await;
-                send_message(cx, session_id, &message);
-            }
-            None => {
-                send_message(
-                    cx,
-                    session_id,
-                    "Model picker closed; the model is unchanged.",
-                );
-            }
-        },
-        Err(e) => {
-            tracing::warn!("/setup model picker failed: {e}");
-            send_message(
-                cx,
-                session_id,
-                "Setup could not show the model picker; the model is unchanged.",
-            );
         }
     }
 }
@@ -13630,8 +13022,7 @@ mod tests {
     /// actionable provider/action, pre-selecting `choose`.
     #[test]
     fn setup_home_elicitation_request_shape() {
-        let req =
-            build_setup_home_elicitation_request("sess-home", &SetupProviderStatus::default());
+        let req = build_setup_home_elicitation_request("sess-home");
         let json = serde_json::to_value(&req).unwrap();
 
         assert_eq!(json["mode"], "form");
@@ -13649,7 +13040,6 @@ mod tests {
             values,
             vec![
                 "choose",
-                "models",
                 "codex",
                 "local",
                 "deepseek",
@@ -13680,41 +13070,6 @@ mod tests {
             assert!(line.contains(route.scope()), "got: {line}");
             assert!(line.contains(route.label()), "got: {line}");
         }
-    }
-
-    /// Provider routes in the home menu carry their live status in the label;
-    /// routes without status (choose/models/lsp/recap/advanced) keep the bare
-    /// label.
-    #[test]
-    fn setup_home_labels_include_provider_status() {
-        let status = SetupProviderStatus {
-            codex: Some("ready".to_string()),
-            deepseek: Some("not connected".to_string()),
-            ..SetupProviderStatus::default()
-        };
-        let req = build_setup_home_elicitation_request("sess-home", &status);
-        let json = serde_json::to_value(&req).unwrap();
-        let options = json["requestedSchema"]["properties"]["choice"]["oneOf"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|o| (o["const"].as_str().unwrap(), o["title"].as_str().unwrap()))
-            .collect::<std::collections::BTreeMap<&str, &str>>();
-
-        assert_eq!(
-            options["codex"],
-            format!("{} — ready", SetupHomeRoute::Codex.menu_label())
-        );
-        assert_eq!(
-            options["deepseek"],
-            format!("{} — not connected", SetupHomeRoute::DeepSeek.menu_label())
-        );
-        assert_eq!(
-            options["choose"],
-            SetupHomeRoute::Choose.menu_label(),
-            "status-less routes keep the bare label"
-        );
-        assert_eq!(options["models"], SetupHomeRoute::Models.menu_label());
     }
 
     /// An accepted choice maps to its route; Decline/Cancel, empty content, a
@@ -14008,7 +13363,6 @@ mod tests {
         assert_eq!(key["type"], "string");
         assert!(key.get("oneOf").is_none(), "key is free text, not a select");
         assert_eq!(key["minLength"], 1);
-        assert_eq!(key["format"], "password", "key entry must be masked");
         assert_eq!(json["requestedSchema"]["required"][0], "key");
     }
 
@@ -14027,162 +13381,7 @@ mod tests {
         let key = &json["requestedSchema"]["properties"]["key"];
         assert_eq!(key["title"], "API key");
         assert_eq!(key["minLength"], 1);
-        assert_eq!(key["format"], "password", "key entry must be masked");
         assert_eq!(json["requestedSchema"]["required"][0], "key");
-    }
-
-    /// The connected-provider management menu lists exactly the requested
-    /// actions, and accepted choices map back through the wire values.
-    #[test]
-    fn provider_action_menu_shape_and_parse() {
-        use agent_client_protocol::schema::v1::ElicitationAcceptAction;
-
-        let req = build_provider_action_elicitation_request(
-            "sess-action",
-            "DeepSeek",
-            &[
-                ProviderAction::SignIn,
-                ProviderAction::Disconnect,
-                ProviderAction::Refresh,
-            ],
-        );
-        let json = serde_json::to_value(&req).unwrap();
-        assert_eq!(json["mode"], "form");
-        assert_eq!(json["sessionId"].as_str(), Some("sess-action"));
-        assert_eq!(json["message"], "Manage DeepSeek");
-        let action = &json["requestedSchema"]["properties"]["action"];
-        let values: Vec<&str> = action["oneOf"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|o| o["const"].as_str().unwrap())
-            .collect();
-        assert_eq!(values, vec!["signin", "disconnect", "refresh"]);
-
-        let accept = |value: &str| {
-            ElicitationAction::Accept(ElicitationAcceptAction::new().content(
-                std::collections::BTreeMap::from([(
-                    "action".to_string(),
-                    ElicitationContentValue::from(value),
-                )]),
-            ))
-        };
-        assert_eq!(
-            parse_provider_action_choice(&accept("disconnect")),
-            Some(ProviderAction::Disconnect)
-        );
-        assert_eq!(
-            parse_provider_action_choice(&accept("signin")),
-            Some(ProviderAction::SignIn)
-        );
-        assert_eq!(
-            parse_provider_action_choice(&accept("refresh")),
-            Some(ProviderAction::Refresh)
-        );
-        // Decline/Cancel, empty content, and unknown values all mean "closed".
-        assert_eq!(
-            parse_provider_action_choice(&ElicitationAction::Cancel),
-            None
-        );
-        assert_eq!(parse_provider_action_choice(&accept("nope")), None);
-    }
-
-    /// `/setup model` with no value opens the interactive picker; an explicit
-    /// model id keeps the text flow.
-    #[test]
-    fn setup_elicitation_target_models_only_when_value_less() {
-        assert_eq!(
-            setup_elicitation_target("/setup model"),
-            Some(SetupElicitTarget::Models)
-        );
-        assert_eq!(setup_elicitation_target("/setup model codex::gpt-5"), None);
-        assert!(
-            SetupElicitTarget::Models.is_supported(crate::session::ClientElicitationCaps {
-                form: true,
-                url: false,
-            })
-        );
-        assert!(
-            !SetupElicitTarget::Models.is_supported(crate::session::ClientElicitationCaps {
-                form: false,
-                url: true,
-            })
-        );
-    }
-
-    /// The picker's provider step lists only sources that currently have
-    /// models, in preference order, with counts in the labels.
-    #[test]
-    fn model_picker_source_options_reflect_catalog() {
-        let catalog = vec![
-            ModelMetadata::id_only("ollama::llama3:latest"),
-            ModelMetadata::id_only("ollama::qwen3:8b"),
-            ModelMetadata::id_only("codex::gpt-5-codex"),
-        ];
-        let options = model_picker_source_options(&catalog);
-        let rendered: Vec<(String, String)> = options
-            .iter()
-            .map(|o| (o.value.clone(), o.title.clone()))
-            .collect();
-        assert_eq!(
-            rendered,
-            vec![
-                ("codex".to_string(), "Codex (1 models)".to_string()),
-                ("ollama".to_string(), "Ollama (2 models)".to_string()),
-            ]
-        );
-
-        assert!(build_model_source_menu_request("s", &[]).is_none());
-    }
-
-    /// The per-provider step lists wire ids as values, bare ids (plus context
-    /// length when published) as labels, caps the list, and applies the
-    /// OpenRouter chat/coding filter.
-    #[test]
-    fn model_picker_models_and_labels() {
-        let mut openrouter_model = ModelMetadata::id_only("openrouter::anthropic/claude-sonnet");
-        openrouter_model.context_length = Some(200_000);
-        let mut capped = Vec::new();
-        for i in 0..(MODEL_PICKER_CAP + 5) {
-            capped.push(ModelMetadata::id_only(format!("ollama::m{i}")));
-        }
-        let catalog = vec![
-            openrouter_model,
-            ModelMetadata::id_only("openrouter::some-image-model"),
-            ModelMetadata::id_only("openrouter::free-sample"),
-        ];
-        catalog.iter().for_each(|m| assert!(!m.id.is_empty()));
-
-        let openrouter = model_picker_models(&catalog, ModelSource::OPENROUTER);
-        assert_eq!(
-            openrouter.iter().map(|m| m.id.as_str()).collect::<Vec<_>>(),
-            vec!["openrouter::anthropic/claude-sonnet"]
-        );
-        assert_eq!(
-            model_picker_label(openrouter[0]),
-            "anthropic/claude-sonnet · 200000 ctx"
-        );
-
-        let ollama = model_picker_models(&capped, ModelSource::OLLAMA);
-        assert_eq!(ollama.len(), MODEL_PICKER_CAP);
-        assert_eq!(model_picker_label(ollama[0]), "m0");
-    }
-
-    /// The model step of the picker is a session-scoped single-select form
-    /// whose values are wire ids.
-    #[test]
-    fn model_pick_menu_request_shape() {
-        let models = [ModelMetadata::id_only("deepseek::deepseek-chat")];
-        let model_refs: Vec<&ModelMetadata> = models.iter().collect();
-        let req = build_model_pick_menu_request("sess-model", ModelSource::DEEPSEEK, &model_refs);
-        let json = serde_json::to_value(&req).unwrap();
-        assert_eq!(json["mode"], "form");
-        assert_eq!(json["sessionId"].as_str(), Some("sess-model"));
-        assert_eq!(json["message"], "Pick a DeepSeek model");
-        let field = &json["requestedSchema"]["properties"]["model"];
-        assert_eq!(field["oneOf"][0]["const"], "deepseek::deepseek-chat");
-        assert_eq!(field["oneOf"][0]["title"], "deepseek-chat");
-        assert_eq!(json["requestedSchema"]["required"][0], "model");
     }
 
     /// Capabilities default to all-false and round-trip through the store.
