@@ -2,9 +2,11 @@
 //! (`http://localhost:11434/v1/models`), a local ds4-server
 //! (antirez/ds4, an OpenAI-compatible DeepSeek V4 inference engine), and
 //! Kimi Code, Grok Build OAuth, generic OpenAI-compatible profiles from `providers.json`,
-//! and OpenRouter (`https://openrouter.ai/api/v1/models`, gated on the
+//! OpenRouter (`https://openrouter.ai/api/v1/models`, gated on the
 //! `OPENROUTER_API_KEY` env var), and hosted DeepSeek
 //! (`https://api.deepseek.com/v1/models`, gated on `DEEPSEEK_API_KEY`).
+//! Inceptron (`https://api.inceptron.io/v1/models`, gated on
+//! `INCEPTRON_API_KEY`) is discovered the same way.
 //! Meta/Muse models are discovered through Meta's native API when a Muse
 //! Code login is present.
 //!
@@ -13,6 +15,7 @@
 //! include Ollama models -- run `ollama serve` on `:11434` to make them
 //! discoverable. OpenRouter and hosted DeepSeek are enabled only when
 //! their API keys are set in the environment or stored setup credentials.
+//! Inceptron uses `INCEPTRON_API_KEY` or the stored setup credential.
 //! Kimi uses `KIMI_API_KEY` or the Kimi CLI OAuth credential file. Grok uses
 //! the official Grok Build OAuth credential file. Generic
 //! OpenAI-compatible profiles are enabled only when `providers.json`
@@ -60,6 +63,7 @@ impl ModelSource {
     pub const DS4: &'static str = "ds4";
     pub const GROK: &'static str = "grok";
     pub const KIMI: &'static str = "kimi";
+    pub const INCEPTRON: &'static str = "inceptron";
     pub const OLLAMA: &'static str = "ollama";
     pub const OPENAI: &'static str = "openai";
     pub const OPENROUTER: &'static str = "openrouter";
@@ -104,6 +108,13 @@ pub const DEEPSEEK_BASE_URL: &str = "https://api.deepseek.com";
 
 /// Environment variable name carrying the hosted DeepSeek API key.
 pub const DEEPSEEK_API_KEY_ENV: &str = "DEEPSEEK_API_KEY";
+
+/// Inceptron cloud base URL. The API is OpenAI-compatible and uses this
+/// origin for both chat and model discovery.
+pub const INCEPTRON_BASE_URL: &str = "https://api.inceptron.io";
+
+/// Environment variable name carrying the Inceptron API key.
+pub const INCEPTRON_API_KEY_ENV: &str = "INCEPTRON_API_KEY";
 
 // ---------------------------------------------------------------------------
 // ds4 (antirez/ds4) discovery

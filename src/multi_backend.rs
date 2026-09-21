@@ -177,6 +177,22 @@ impl MultiBackend {
         self.uninstall(ModelSource::DEEPSEEK);
     }
 
+    /// Install (or replace) the Inceptron backend at runtime. Called
+    /// from `/setup inceptron key <key>` so a session that started
+    /// without `INCEPTRON_API_KEY` or a stored key picks up the new key
+    /// on the next discovery refresh.
+    pub fn install_inceptron(&self, backend: Arc<dyn LlmBackend>) {
+        self.install(ModelSource::INCEPTRON, backend);
+    }
+
+    /// Drop the currently-installed Inceptron backend, if any. Called
+    /// from `/setup inceptron disconnect` after the stored credentials
+    /// are wiped so a subsequent `inceptron::*` request fails with
+    /// "backend not configured" instead of firing 401-bound requests.
+    pub fn uninstall_inceptron(&self) {
+        self.uninstall(ModelSource::INCEPTRON);
+    }
+
     /// Install or replace the Grok OAuth backend after the external Grok
     /// CLI credential file changes.
     pub fn install_grok(&self, backend: Arc<dyn LlmBackend>) {
@@ -538,6 +554,7 @@ mod tests {
             BackendRegistration::new(ModelSource::OLLAMA, "Local models", ollama),
             BackendRegistration::new(ModelSource::DS4, "ds4", None),
             BackendRegistration::new(ModelSource::DEEPSEEK, "DeepSeek", deepseek),
+            BackendRegistration::new(ModelSource::INCEPTRON, "Inceptron", None),
             BackendRegistration::new(ModelSource::KIMI, "Kimi", None),
             BackendRegistration::new(ModelSource::OPENAI, "OpenAI-compatible", openai),
             BackendRegistration::new(ModelSource::OPENROUTER, "OpenRouter", openrouter),

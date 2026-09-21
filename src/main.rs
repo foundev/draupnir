@@ -24,6 +24,7 @@ mod host_notice;
 #[cfg(feature = "http-api")]
 mod http_api;
 mod http_retry;
+mod inceptron_auth;
 mod infer;
 mod installer;
 mod kimi_auth;
@@ -488,6 +489,67 @@ fn build_deepseek_backend() -> Option<Arc<dyn LlmBackend>> {
     }
 }
 
+/// Build an Inceptron chat backend from a raw API key. Inceptron's API is
+/// OpenAI-compatible at `https://api.inceptron.io`, so this mirrors the
+/// DeepSeek builder with the unified reasoning support.
+pub fn inceptron_backend_from_key(raw: &str) -> Option<Arc<dyn LlmBackend>> {
+    let key = raw.trim();
+    if key.is_empty() {
+        return None;
+    }
+    Some(Arc::new(llm_client::OpenAiClient::with_reasoning_support(
+        discovery::INCEPTRON_BASE_URL.to_string(),
+        Some(key.to_string()),
+        reqwest::header::HeaderMap::new(),
+    )))
+}
+
+/// Build the Inceptron backend from `INCEPTRON_API_KEY`, falling back to
+/// the consolidated secrets store (written by `/setup inceptron key`).
+/// Precedence matches DeepSeek and OpenRouter: env > file > nothing.
+fn build_inceptron_backend() -> Option<Arc<dyn LlmBackend>> {
+    if let Ok(raw) = std::env::var(discovery::INCEPTRON_API_KEY_ENV) {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            tracing::info!(
+                "{} is set but empty; falling back to the secrets store",
+                discovery::INCEPTRON_API_KEY_ENV
+            );
+        } else {
+            tracing::info!(
+                "Inceptron backend wired from {} at {} (chat + discovery); key length={}",
+                discovery::INCEPTRON_API_KEY_ENV,
+                discovery::INCEPTRON_BASE_URL,
+                trimmed.len()
+            );
+            return inceptron_backend_from_key(trimmed);
+        }
+    }
+
+    match inceptron_auth::read() {
+        Ok(Some(auth)) => {
+            let trimmed = auth.api_key.trim();
+            if trimmed.is_empty() {
+                tracing::info!(
+                    "Inceptron entry in the secrets store has an empty key; backend skipped"
+                );
+                return None;
+            }
+            tracing::info!(
+                "Inceptron backend wired from the secrets store at {} (chat + discovery); key length={}",
+                discovery::INCEPTRON_BASE_URL,
+                trimmed.len()
+            );
+            inceptron_backend_from_key(trimmed)
+        }
+        Ok(None) => None,
+        Err(e) => {
+            tracing::warn!("failed to read the secrets store for Inceptron: {e:#}");
+            None
+        }
+    }
+}
+
 fn build_kimi_backend() -> Option<Arc<dyn LlmBackend>> {
     let auth = match kimi_auth::load_provider() {
         Ok(auth) => auth,
@@ -659,6 +721,7 @@ async fn build_multi_backend() -> Result<Arc<MultiBackend>> {
         }
     };
     let deepseek_backend = build_deepseek_backend();
+    let inceptron_backend = build_inceptron_backend();
     let kimi_backend = build_kimi_backend();
     let grok_backend = build_grok_backend();
     let openai_backend = build_openai_compatible_backend()?;
@@ -715,6 +778,11 @@ async fn build_multi_backend() -> Result<Arc<MultiBackend>> {
             discovery::ModelSource::DEEPSEEK,
             "DeepSeek",
             deepseek_backend,
+        ),
+        BackendRegistration::new(
+            discovery::ModelSource::INCEPTRON,
+            "Inceptron",
+            inceptron_backend,
         ),
         BackendRegistration::new(discovery::ModelSource::KIMI, "Kimi", kimi_backend),
         BackendRegistration::new(discovery::ModelSource::GROK, "Grok", grok_backend),

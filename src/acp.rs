@@ -1507,6 +1507,7 @@ fn preferred_model(catalog: &[ModelMetadata]) -> Option<String> {
         ModelSource::OLLAMA,
         ModelSource::DS4,
         ModelSource::DEEPSEEK,
+        ModelSource::INCEPTRON,
         ModelSource::KIMI,
         ModelSource::GROK,
         ModelSource::OPENAI,
@@ -1552,6 +1553,8 @@ fn render_setup_home_for_model(model: &str, catalog: &[ModelMetadata]) -> String
     let openrouter_count = source_count(catalog, ModelSource::OPENROUTER);
     let openrouter_state = crate::openrouter_auth::CredentialState::snapshot();
     let deepseek_state = crate::deepseek_auth::CredentialState::snapshot();
+    let inceptron_count = source_count(catalog, ModelSource::INCEPTRON);
+    let inceptron_state = crate::inceptron_auth::CredentialState::snapshot();
     let codex_connected = crate::codex_auth::read_auth_dot_json()
         .ok()
         .flatten()
@@ -1582,6 +1585,7 @@ fn render_setup_home_for_model(model: &str, catalog: &[ModelMetadata]) -> String
          - Codex: {codex_status}\n\
          - Local models (Ollama / ds4): {local_status}\n\
          - DeepSeek: {deepseek_status}\n\
+         - Inceptron: {inceptron_status}\n\
          - Grok: {grok_status}\n\
          - OpenRouter: {openrouter_status}\n\n\
          You can run `/setup` anytime.",
@@ -1600,6 +1604,13 @@ fn render_setup_home_for_model(model: &str, catalog: &[ModelMetadata]) -> String
         deepseek_status = if deepseek_count > 0 {
             "ready".to_string()
         } else if deepseek_state.active_source() == "none" {
+            "not connected".to_string()
+        } else {
+            "connected, no models found yet".to_string()
+        },
+        inceptron_status = if inceptron_count > 0 {
+            "ready".to_string()
+        } else if inceptron_state.active_source() == "none" {
             "not connected".to_string()
         } else {
             "connected, no models found yet".to_string()
@@ -6814,6 +6825,8 @@ enum SetupElicitTarget {
     OpenRouterLogin,
     /// `/setup deepseek` with no explicit value -> form-mode key entry.
     DeepSeekLogin,
+    /// `/setup inceptron` with no explicit value -> form-mode key entry.
+    InceptronLogin,
 }
 
 impl SetupElicitTarget {
@@ -6832,6 +6845,7 @@ impl SetupElicitTarget {
             // Hosted-provider secrets use form fields so they never enter the
             // prompt transcript.
             Self::DeepSeekLogin => caps.form,
+            Self::InceptronLogin => caps.form,
         }
     }
 }
@@ -6861,6 +6875,7 @@ fn setup_elicitation_target(prompt_text: &str) -> Option<SetupElicitTarget> {
         // `key <k>` / `status` / `disconnect` keep the text flow.
         "openrouter" if rest.is_empty() => Some(SetupElicitTarget::OpenRouterLogin),
         "deepseek" if rest.is_empty() => Some(SetupElicitTarget::DeepSeekLogin),
+        "inceptron" if rest.is_empty() => Some(SetupElicitTarget::InceptronLogin),
         _ => None,
     }
 }
@@ -6909,6 +6924,17 @@ async fn run_setup_elicitation(
         }
         SetupElicitTarget::DeepSeekLogin => {
             run_setup_deepseek_login_elicitation(
+                spawned_cx,
+                sessions,
+                session_id,
+                llm,
+                refresh_lock,
+                cancel,
+            )
+            .await;
+        }
+        SetupElicitTarget::InceptronLogin => {
+            run_setup_inceptron_login_elicitation(
                 spawned_cx,
                 sessions,
                 session_id,
@@ -7295,6 +7321,47 @@ async fn run_setup_deepseek_login_elicitation(
     send_message(cx, session_id, &message);
 }
 
+async fn run_setup_inceptron_login_elicitation(
+    spawned_cx: &crate::tool_loop::SpawnedCx<'_>,
+    sessions: &SessionStore,
+    session_id: &str,
+    llm: &Arc<MultiBackend>,
+    refresh_lock: &Arc<tokio::sync::Mutex<()>>,
+    cancel: &tokio_util::sync::CancellationToken,
+) {
+    let cx = spawned_cx.cx();
+    if crate::inceptron_auth::CredentialState::snapshot().env_owns() {
+        send_message(cx, session_id, &render_inceptron_setup_help());
+        return;
+    }
+    let request = build_provider_secret_elicitation_request(
+        session_id,
+        "Inceptron",
+        "API key",
+        "Paste your Inceptron API key. It will be stored in Draupnir's protected secrets file.",
+    );
+    let message = match request_setup_secret(cx, cancel, request).await {
+        Ok(Some(key)) => {
+            handle_setup_inceptron(
+                cx,
+                sessions,
+                session_id,
+                llm,
+                refresh_lock,
+                &format!("key {key}"),
+            )
+            .await
+        }
+        Ok(None) => "Inceptron setup cancelled; credentials are unchanged.".to_string(),
+        Err(e) => {
+            tracing::warn!("/setup inceptron elicitation failed: {e}");
+            "Setup could not show the Inceptron credential prompt; credentials are unchanged."
+                .to_string()
+        }
+    };
+    send_message(cx, session_id, &message);
+}
+
 /// `/setup sandbox` as a single-select menu. Sends an `elicitation/create`
 /// form request, then applies the chosen backend through the same
 /// `handle_setup_sandbox` writer the slash path uses. Decline/Cancel (and a
@@ -7418,6 +7485,8 @@ enum SetupHomeRoute {
     Local,
     /// Hosted DeepSeek key entry (`/setup deepseek`).
     DeepSeek,
+    /// Inceptron key entry (`/setup inceptron`).
+    Inceptron,
     /// Grok Build OAuth reuse (`/setup grok`).
     Grok,
     /// Interactive OpenRouter key entry (`/setup openrouter`).
@@ -7438,6 +7507,7 @@ impl SetupHomeRoute {
             Self::Codex => "codex",
             Self::Local => "local",
             Self::DeepSeek => "deepseek",
+            Self::Inceptron => "inceptron",
             Self::Grok => "grok",
             Self::OpenRouter => "openrouter",
             Self::Lsp => "lsp",
@@ -7460,6 +7530,7 @@ impl SetupHomeRoute {
             Self::Codex => "Sign in to Codex / ChatGPT",
             Self::Local => "Use local models (Ollama / ds4)",
             Self::DeepSeek => "Use hosted DeepSeek",
+            Self::Inceptron => "Use Inceptron",
             Self::Grok => "Use Grok Build OAuth",
             Self::OpenRouter => "Use OpenRouter",
             Self::Lsp => "Configure LSP diagnostics",
@@ -7470,9 +7541,12 @@ impl SetupHomeRoute {
 
     fn scope(self) -> &'static str {
         match self {
-            Self::Codex | Self::Local | Self::DeepSeek | Self::Grok | Self::OpenRouter => {
-                "global provider"
-            }
+            Self::Codex
+            | Self::Local
+            | Self::DeepSeek
+            | Self::Inceptron
+            | Self::Grok
+            | Self::OpenRouter => "global provider",
             Self::Choose => "current session",
             Self::Lsp | Self::Recap => "install default",
             Self::Advanced => "all scopes",
@@ -7485,6 +7559,7 @@ impl SetupHomeRoute {
             Self::Codex => "/setup codex",
             Self::Local => "/setup local",
             Self::DeepSeek => "/setup deepseek",
+            Self::Inceptron => "/setup inceptron",
             Self::Grok => "/setup grok",
             Self::OpenRouter => "/setup openrouter",
             Self::Lsp => "/setup lsp",
@@ -7508,12 +7583,13 @@ impl SetupHomeRoute {
 
     /// The menu in display order. `choose` leads because it is the fastest path
     /// to a working model.
-    fn menu() -> [Self; 9] {
+    fn menu() -> [Self; 10] {
         [
             Self::Choose,
             Self::Codex,
             Self::Local,
             Self::DeepSeek,
+            Self::Inceptron,
             Self::Grok,
             Self::OpenRouter,
             Self::Lsp,
@@ -7658,6 +7734,17 @@ async fn run_setup_home_elicitation(
             )
             .await;
         }
+        Some(SetupHomeRoute::Inceptron) => {
+            run_setup_inceptron_login_elicitation(
+                spawned_cx,
+                sessions,
+                session_id,
+                llm,
+                refresh_lock,
+                cancel,
+            )
+            .await;
+        }
         None => {
             send_message(cx, session_id, "Setup closed; nothing changed.");
         }
@@ -7739,6 +7826,17 @@ async fn handle_setup(ctx: &SetupContext<'_>, prompt_text: &str, session_id: &st
         }
         "deepseek" => {
             handle_setup_deepseek(
+                ctx.cx,
+                ctx.sessions,
+                session_id,
+                ctx.llm,
+                ctx.refresh_lock,
+                rest,
+            )
+            .await
+        }
+        "inceptron" => {
+            handle_setup_inceptron(
                 ctx.cx,
                 ctx.sessions,
                 session_id,
@@ -8290,6 +8388,160 @@ fn render_deepseek_setup_help() -> String {
          - `/setup deepseek status`\n\
          - `/setup deepseek disconnect`\n\
          - `/setup deepseek refresh`\n\n\
+         Choose for me: `/setup choose`."
+    )
+}
+
+/// Handle `/setup inceptron` and its subcommands: `key <key>` stores the
+/// API key in the consolidated secrets store and installs the backend
+/// live, `status` reports where the active credential comes from, and
+/// `disconnect` wipes the stored key. The env-owns contract means that
+/// when `INCEPTRON_API_KEY` is set, the command explains rather than
+/// mutating state the environment will shadow.
+async fn handle_setup_inceptron(
+    cx: &ConnectionTo<Client>,
+    sessions: &SessionStore,
+    session_id: &str,
+    llm: &Arc<MultiBackend>,
+    refresh_lock: &Arc<tokio::sync::Mutex<()>>,
+    rest: &str,
+) -> String {
+    if rest.is_empty() {
+        return render_inceptron_setup_help();
+    }
+    let lower = rest.to_ascii_lowercase();
+    if matches!(lower.as_str(), "refresh" | "try-again") {
+        return handle_provider_setup_refresh(
+            cx,
+            sessions,
+            session_id,
+            llm,
+            refresh_lock,
+            ModelSource::INCEPTRON,
+            "Inceptron",
+            render_inceptron_setup_help,
+        )
+        .await;
+    }
+
+    if let Some(key) = rest.strip_prefix("key ") {
+        let state = crate::inceptron_auth::CredentialState::snapshot();
+        if state.env_owns() {
+            return format!(
+                "Inceptron credentials are managed by the {} environment variable. \
+                 Unset it and restart before using `/setup inceptron key`.",
+                crate::discovery::INCEPTRON_API_KEY_ENV
+            );
+        }
+        let key = key.trim();
+        if key.is_empty() {
+            return "Provide an API key: `/setup inceptron key <key>`.".to_string();
+        }
+
+        match crate::inceptron_auth::write(&crate::inceptron_auth::InceptronAuth {
+            api_key: key.to_string(),
+        }) {
+            Ok(()) => {
+                if let Some(backend) = crate::inceptron_backend_from_key(key) {
+                    llm.install_inceptron(backend);
+                }
+                refresh_catalog_after(
+                    cx,
+                    session_id,
+                    sessions,
+                    llm,
+                    refresh_lock,
+                    "Refreshing model catalog after Inceptron setup...",
+                );
+                format!(
+                    "Inceptron API key saved (length {}).\n\n\
+                     Run `/setup choose` or `/setup model` to pick an Inceptron model.",
+                    key.len()
+                )
+            }
+            Err(e) => format!("Failed to save the Inceptron API key: {e:#}"),
+        }
+    } else {
+        match lower.as_str() {
+            "status" => {
+                let state = crate::inceptron_auth::CredentialState::snapshot();
+                match state.active_source() {
+                    "env" => format!(
+                        "Inceptron is configured via the {} environment variable.",
+                        crate::discovery::INCEPTRON_API_KEY_ENV
+                    ),
+                    "file" => "Inceptron is configured from the saved API key.".to_string(),
+                    _ => "No Inceptron credentials found. Run `/setup inceptron key <key>`."
+                        .to_string(),
+                }
+            }
+            "disconnect" => {
+                let state = crate::inceptron_auth::CredentialState::snapshot();
+                match crate::inceptron_auth::logout() {
+                    Ok(()) => {
+                        llm.uninstall_inceptron();
+                        refresh_catalog_after(
+                            cx,
+                            session_id,
+                            sessions,
+                            llm,
+                            refresh_lock,
+                            "Refreshing model catalog after Inceptron disconnect...",
+                        );
+                        if state.env_owns() {
+                            let env = crate::discovery::INCEPTRON_API_KEY_ENV;
+                            format!(
+                                "Inceptron stored key cleared and the in-memory backend was \
+                                 unloaded, but {env} is still set.\n\
+                                 Unset it and restart Draupnir to fully disconnect Inceptron:\n\n  \
+                                 unset {env}\n\n\
+                                 If it comes back after restart, remove it from your shell \
+                                 profile or secrets manager."
+                            )
+                        } else {
+                            "Inceptron credentials cleared and the in-memory backend was \
+                             unloaded. Run `/setup inceptron key <key>` to reconnect."
+                                .to_string()
+                        }
+                    }
+                    Err(e) => format!("Failed to remove Inceptron credentials: {e:#}"),
+                }
+            }
+            _ => format!(
+                "Unknown Inceptron setup option `{rest}`.\n\n{}",
+                render_inceptron_setup_help()
+            ),
+        }
+    }
+}
+
+fn render_inceptron_setup_help() -> String {
+    let state = crate::inceptron_auth::CredentialState::snapshot();
+    let status = match state.active_source() {
+        "env" => format!(
+            "Inceptron is connected from the {} environment variable.",
+            crate::discovery::INCEPTRON_API_KEY_ENV
+        ),
+        "file" => "Inceptron is connected from the saved API key.".to_string(),
+        _ => "Inceptron is not connected.".to_string(),
+    };
+    let key_help = if state.env_owns() {
+        "Credentials are managed by the environment variable. Unset it and restart to use `/setup inceptron key`."
+            .to_string()
+    } else {
+        "If this client supports setup forms, run `/setup inceptron` and enter the key in the out-of-transcript field.\n\
+         Text fallback: `/setup inceptron key <key>` (the key will appear in the session transcript)."
+            .to_string()
+    };
+    format!(
+        "Use Inceptron\n\n\
+         Scope: global provider connection; model selection applies to the current session.\n\n\
+         {status}\n\n\
+         {key_help}\n\n\
+         Other commands:\n\
+         - `/setup inceptron status`\n\
+         - `/setup inceptron disconnect`\n\
+         - `/setup inceptron refresh`\n\n\
          Choose for me: `/setup choose`."
     )
 }
@@ -12791,6 +13043,7 @@ mod tests {
                 "codex",
                 "local",
                 "deepseek",
+                "inceptron",
                 "grok",
                 "openrouter",
                 "lsp",

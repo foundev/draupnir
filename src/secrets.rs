@@ -42,6 +42,7 @@ use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 
 use crate::deepseek_auth::DeepSeekAuth;
+use crate::inceptron_auth::InceptronAuth;
 use crate::openrouter_auth::OpenRouterAuth;
 
 /// The consolidated secrets file: one optional section per provider.
@@ -51,6 +52,8 @@ use crate::openrouter_auth::OpenRouterAuth;
 pub struct SetupSecrets {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deepseek: Option<DeepSeekAuth>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inceptron: Option<InceptronAuth>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub openrouter: Option<OpenRouterAuth>,
 }
@@ -289,6 +292,9 @@ mod tests {
             deepseek: Some(DeepSeekAuth {
                 api_key: "sk-ds".into(),
             }),
+            inceptron: Some(InceptronAuth {
+                api_key: "ic".into(),
+            }),
             openrouter: Some(OpenRouterAuth {
                 api_key: "sk-or".into(),
             }),
@@ -297,6 +303,7 @@ mod tests {
 
         let got = read().unwrap().expect("secrets present after write");
         assert_eq!(got.deepseek.unwrap().api_key, "sk-ds");
+        assert_eq!(got.inceptron.unwrap().api_key, "ic");
         assert_eq!(got.openrouter.unwrap().api_key, "sk-or");
     }
 
