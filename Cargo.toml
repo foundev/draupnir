@@ -45,8 +45,8 @@ brokk-acp-sandbox = "0.1.0"
 # Embedded wasm runtime + WASI Preview 2 bindings for the sandboxed
 # parser. Used to host `brokk-acp-sandbox.wasm` in-process with
 # fuel-based CPU limits and capability-scoped fs access.
-wasmtime = { version = "45", optional = true, default-features = false, features = ["cranelift", "cache", "parallel-compilation", "component-model", "runtime"] }
-wasmtime-wasi = { version = "45", optional = true }
+wasmtime = { version = "48", optional = true, default-features = false, features = ["cranelift", "cache", "parallel-compilation", "component-model", "runtime"] }
+wasmtime-wasi = { version = "48", optional = true }
 zip = "8"
 futures = "0.3"
 fs2 = "0.4"
@@ -58,7 +58,7 @@ rand = "0.10"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_path_to_error = "0.1"
-jsonschema = "0.46"
+jsonschema = "0.56"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["compat", "rt"] }
 tracing = "0.1"
@@ -76,8 +76,8 @@ sha2 = "0.11"
 oauth2 = { version = "5", default-features = false }
 tiny_http = "0.12"
 webbrowser = "1"
-base64 = "0.22"
-dirs = "6"
+base64 = "0.23"
+dirs = "7"
 chrono = { version = "0.4", features = ["serde"] }
 # YAML frontmatter parser for Agent Skills (`SKILL.md`). `serde_yaml` is
 # archived but stable and is what codex's core-skills uses; staying on it

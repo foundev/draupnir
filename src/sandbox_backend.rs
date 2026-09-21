@@ -1060,9 +1060,7 @@ fn run_wasm_round_trip(
     use wasmtime_wasi::p2::add_to_linker_sync;
     use wasmtime_wasi::p2::bindings::sync::Command;
     use wasmtime_wasi::p2::pipe::{MemoryInputPipe, MemoryOutputPipe};
-    use wasmtime_wasi::{
-        DirPerms, FilePerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView,
-    };
+    use wasmtime_wasi::{FsPerms, ResourceTable, WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
     let stdin = MemoryInputPipe::new(req_bytes);
     let stdout = MemoryOutputPipe::new(MEMORY_LIMIT_BYTES);
@@ -1080,7 +1078,7 @@ fn run_wasm_round_trip(
     // bytes for parsing, it never writes.
     if let Some((host_dir, guest_mount)) = preopen {
         wasi_builder
-            .preopened_dir(host_dir, guest_mount, DirPerms::READ, FilePerms::READ)
+            .preopened_dir(host_dir, guest_mount, FsPerms::ReadOnly)
             .map_err(|e| {
                 anyhow!(
                     "preopening sandbox dir '{}' as '{guest_mount}': {e}",
